@@ -1,5 +1,7 @@
 import sys
 
+import signal
+
 import argparse
 
 import logging
@@ -19,6 +21,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('groupcam')
 
 argparser = argparse.ArgumentParser(description=__description__)
+
+# Exit function to call on failure
+_exit_func = lambda: sys.exit(-1)
 
 
 def initialize():
@@ -51,6 +56,8 @@ def initialize():
         logger.setLevel(logging.DEBUG)
         logger.info("Switched to debug mode")
 
+    signal.signal(signal.SIGINT, _exit_func)
+
     load_config(options.config)
 
 
@@ -74,4 +81,4 @@ def fail_with_error(message):
     exc_info = getattr(options, 'traceback', False) and any(sys.exc_info())
     logger.critical(message, exc_info=exc_info)
 
-    sys.exit(-1)
+    _exit_func()

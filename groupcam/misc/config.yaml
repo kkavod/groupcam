@@ -2,3 +2,15 @@
 
 server:
     host: unity.kbb1.com
+    server_password: malhut
+    nickname: Groupcam
+    channel_path: /unity/scandinavian
+    channel_password:
+
+video:
+    title: Groupcam Demo
+    username_regexp: .*scandinavia.*
+    width: 320
+    height: 240
+    device: /dev/video1
+    user_timeout: 1
