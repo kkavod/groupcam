@@ -1,0 +1,13 @@
+# use glob syntax.
+syntax: glob
+
+*.egg-info
+*.orig
+*.pyc
+*.swp
+*.swo
+*.swn
+*~
+.ropeproject/
+__pycache__
+ieweb/settings_local.py
