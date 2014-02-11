@@ -40,3 +40,13 @@ class User(ctypes.Structure):
         ('audio_file_format', ctypes.c_uint32),
         ('audio_file_name', ctypes.c_char * TT_STRLEN),
     ]
+
+
+class CaptureFormat(ctypes.Structure):
+    _fields_ = [
+        ('width', ctypes.c_int32),
+        ('height', ctypes.c_int32),
+        ('fps_numerator', ctypes.c_int32),
+        ('fps_denominator', ctypes.c_int32),
+        ('pic_four_cc', ctypes.c_uint32),
+    ]

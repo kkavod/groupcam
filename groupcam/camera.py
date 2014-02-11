@@ -21,8 +21,8 @@ class Camera:
         regexp_string = self._video_config.get('nickname_regexp',
                                                '.*scandinavia.*')
         self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
-        self._width = self._video_config.get('width', 320)
-        self._height = self._video_config.get('height', 240)
+        self._width = self._video_config.get('width', 640)
+        self._height = self._video_config.get('height', 480)
         self._title = self._video_config.get('title', "Groupcam")
 
         self._init_device()
@@ -34,8 +34,11 @@ class Camera:
         match = self._nickname_regexp.match(nickname)
 
         if match is not None:
-            print('matched')
-            user = self._users.get(user_id, User(user_id, profile.nickname))
+            if user_id in self._users:
+                user = self._users[user_id]
+            else:
+                user = User(user_id, profile.nickname)
+                self._users[user_id] = user
             user.update() and self._update()
 
     def remove_user(self, user_id):
@@ -44,10 +47,11 @@ class Camera:
             self._update()
 
     def _init_device(self):
-        device_name = self._video_config.get('device', '/dev/video1')
-        self._device = open(device_name, 'wb')
-#         if self._device < 0:
-#             fail_with_error("Unable open {} for writing".format(device_name))
+        device_name = self._video_config.get('device', '/dev/video3')
+        try:
+            self._device = open(device_name, 'wb')
+        except FileNotFoundError:
+            fail_with_error("Unable open {} for writing".format(device_name))
         self._capability = self._get_device_capability()
         self._set_device_format()
 
@@ -83,13 +87,32 @@ class Camera:
 
     def _update(self):
         self._draw_title()
-        self._context.fill()
+        self._update_users()
+        self._draw_users()
         self._device.write(self._data)
 
     def _draw_title(self):
-        pattern = cairo.SolidPattern(0, 0, 1.)
-        self._context.rectangle(0, 0, 1, 0.5)
-        self._context.set_source(pattern)
+        self._context.set_source_rgb(1., 0, 0)
+        self._context.rectangle(0, 0, 1, 0.16)
+        self._context.fill()
+        self._context.set_font_size(0.14)
+        self._context.move_to(0, 0.14)
+        self._context.set_source_rgb(1., 1., 1.)
+        self._context.show_text(self._title)
+
+    def _draw_users(self):
+        sort_key = lambda user: user.nickname
+        users = sorted(self._users.values(), key=sort_key)
+        for user in users:
+            self._context.save()
+            self._context.set_source_surface(user.image_surface)
+            self._context.move_to(user.top, user.bottom)
+            self._context.scale(user.width, user.height)
+            self._context.paint()
+            self._context.restore()
+
+    def _update_users(self):
+        pass
 
     def __del__(self):
         self._device.close()

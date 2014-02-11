@@ -86,6 +86,18 @@ class TT4:
         self._library.TT_GetUser(self._instance, user_id, ctypes.pointer(user))
         return user
 
+    def get_user_video_format(self, user_id):
+        video_format = structs.CaptureFormat()
+        ret_code = self._library.TT_GetUserVideoFrame(
+            self._instance, user_id, None, 0, ctypes.pointer(video_format))
+        return bool(ret_code) and video_format
+
+    def get_user_video_frame(self, user_id, data, bytes_number, video_format):
+        format_ptr = ctypes.pointer(video_format)
+        ret_code = self._library.TT_GetUserVideoFrame(
+            self._instance, user_id, data, bytes_number, format_ptr)
+        return bool(ret_code)
+
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
