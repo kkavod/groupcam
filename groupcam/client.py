@@ -1,7 +1,10 @@
+from time import sleep
+
 from groupcam.conf import config
 from groupcam.core import logger
 from groupcam.tt4 import tt4
 from groupcam.tt4.consts import StatusMode, ClientEvent
+from groupcam.camera import camera
 
 
 COMPLETE_COMMANDS = {
@@ -34,6 +37,8 @@ class Client:
             elif code == ClientEvent.WM_TEAMTALK_CON_LOST:
                 tt4.disconnect()
                 logger.error("Connection to server lost, reconnecting...")
+                sleep(1.)
+                tt4.connect()
             elif code == ClientEvent.WM_TEAMTALK_CMD_MYSELF_LOGGEDIN:
                 self._user_id = message.first_param
                 logger.info("Logged in to server")
@@ -41,8 +46,9 @@ class Client:
                 tt4.disconnect()
                 logger.info("Logged out from server")
             elif code == ClientEvent.WM_TEAMTALK_USER_VIDEOFRAME:
-                # TODO: implement me!
-                pass
+                if message.first_param != self._user_id:
+                    camera.process_user_frame(message.first_param,
+                                              message.second_param)
             elif code == ClientEvent.WM_TEAMTALK_CMD_PROCESSING:
                 self._process_command(message.first_param,
                                       bool(message.second_param))
@@ -53,8 +59,7 @@ class Client:
             elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LOGGEDOUT:
                 pass
             elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LEFT:
-                # TODO: implement me!
-                pass
+                camera.remove_user(message.first_param)
 
     def _process_command(self, command_id, complete):
         command = self._commands.get(command_id)

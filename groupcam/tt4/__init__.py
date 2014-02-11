@@ -81,6 +81,11 @@ class TT4:
             fail_with_error("Unable to join the channel")
         return command_id
 
+    def get_user(self, user_id):
+        user = structs.User()
+        self._library.TT_GetUser(self._instance, user_id, ctypes.pointer(user))
+        return user
+
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
