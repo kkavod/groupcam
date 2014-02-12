@@ -8,6 +8,9 @@ from groupcam.tt4 import consts
 from groupcam.tt4 import structs
 
 
+_server_config = config['server']
+
+
 class TT4:
     """TT4 API wrapper.
     """
@@ -26,10 +29,9 @@ class TT4:
         if flags & consts.ClientFlag.CLIENT_CONNECTION:
             return
 
-        server_config = config['server']
-        host = server_config.get('host', 'unity.kbb1.com')
-        tcp_port = server_config.get('tcp_port', 10333)
-        udp_port = server_config.get('udp_port', 10333)
+        host = _server_config['host']
+        tcp_port = _server_config['tcp_port']
+        udp_port = _server_config['udp_port']
         result = self._library.TT_Connect(self._instance,
                                           host.encode('utf8'),
                                           tcp_port, udp_port, 0, 0)
@@ -46,12 +48,10 @@ class TT4:
         return message
 
     def login(self):
-        server_config = config['server']
-        nickname = server_config.get('nickname', "Groupcam").encode('utf8')
-        server_password = server_config.get(
-            'server_password', "malhut").encode('utf8')
-        user_name = server_config.get('user_name', '').encode('utf8')
-        user_password = server_config.get('user_password', '').encode('utf8')
+        nickname = _server_config['nickname'].encode('utf8')
+        server_password = _server_config['server_password'].encode('utf8')
+        user_name = _server_config['user_name'].encode('utf8')
+        user_password = _server_config['user_password'].encode('utf8')
 
         result = self._library.TT_DoLogin(self._instance,
                                           nickname, server_password,

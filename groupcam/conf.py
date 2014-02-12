@@ -2,29 +2,44 @@ import os
 
 import yaml
 
-from .core import fail_with_error
+from groupcam.core import fail_with_error
 
 
 # Global configuration dictionary
 config = {}
 
 
-def load_config(config_path):
+def load_config(config_path=None):
     """Loads YAML configuration file.
 
     @param config_path: config path
     """
 
-    if config_path is None or not os.path.exists(config_path):
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(base_path, 'misc/config.yaml')
+    defaults = _load_defaults()
+    custom_config = _load_custom_config(config_path)
+    _deep_update(defaults, custom_config)
+    config.update(defaults)
 
+
+def _load_defaults():
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    defaults_path = os.path.join(base_path, 'misc/defaults.yaml')
+    with open(defaults_path) as defaults_file:
+        defaults = yaml.load(defaults_file)
+    return defaults
+
+
+def _load_custom_config(config_path):
     with open(config_path) as config_file:
         try:
-            cfg = yaml.load(config_file)
+            custom_config = yaml.load(config_file)
         except IOError:
-            fail_with_error("Config file not found ({0})".format(config_path))
+            fail_with_error("Config file not found ({})".format(config_path))
         except yaml.YAMLError:
-            fail_with_error("Error parsing {0}, specify --traceback option "
+            fail_with_error("Error parsing {}, specify --traceback option "
                             "for details".format(config_path))
-        config.update(cfg)
+    return custom_config
+
+
+def _deep_update(dest, src):
+    pass
