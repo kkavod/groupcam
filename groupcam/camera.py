@@ -13,18 +13,15 @@ from groupcam.tt4 import tt4
 from groupcam.user import User
 
 
-_video_config = config['video']
-
-
 class Camera:
     def __init__(self):
         self._users = {}
 
-        regexp_string = _video_config['nickname_regexp']
+        regexp_string = config['video']['nickname_regexp']
         self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
-        self._width = _video_config['width']
-        self._height = _video_config['height']
-        self._title = _video_config['title']
+        self._width = config['video']['width']
+        self._height = config['video']['height']
+        self._title = config['video']['title']
 
         self._init_device()
         self._init_surface()
@@ -48,7 +45,7 @@ class Camera:
             self._update()
 
     def _init_device(self):
-        device_name = _video_config['device']
+        device_name = config['video']['device']
         try:
             self._device = open(device_name, 'wb')
         except FileNotFoundError:
@@ -113,10 +110,7 @@ class Camera:
             self._context.restore()
 
     def _update_users(self):
-        padding = _video_config['user_padding'] / 100.
+        padding = config['video']['user_padding'] / 100.
 
     def __del__(self):
         self._device.close()
-
-
-camera = Camera()

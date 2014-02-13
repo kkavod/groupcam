@@ -8,7 +8,7 @@ from groupcam.tt4 import consts
 from groupcam.tt4 import structs
 
 
-_server_config = config['server']
+_ttstr = lambda val: (val or '').encode('utf8')
 
 
 class TT4:
@@ -29,11 +29,11 @@ class TT4:
         if flags & consts.ClientFlag.CLIENT_CONNECTION:
             return
 
-        host = _server_config['host']
-        tcp_port = _server_config['tcp_port']
-        udp_port = _server_config['udp_port']
+        host = config['server']['host']
+        tcp_port = config['server']['tcp_port']
+        udp_port = config['server']['udp_port']
         result = self._library.TT_Connect(self._instance,
-                                          host.encode('utf8'),
+                                          _ttstr(host),
                                           tcp_port, udp_port, 0, 0)
         if not result:
             fail_with_error("Unable to establish connection with the server")
@@ -48,10 +48,10 @@ class TT4:
         return message
 
     def login(self):
-        nickname = _server_config['nickname'].encode('utf8')
-        server_password = _server_config['server_password'].encode('utf8')
-        user_name = _server_config['user_name'].encode('utf8')
-        user_password = _server_config['user_password'].encode('utf8')
+        nickname = _ttstr(config['server']['nickname'])
+        server_password = _ttstr(config['server']['server_password'])
+        user_name = _ttstr(config['server']['user_name'])
+        user_password = _ttstr(config['server']['user_password'])
 
         result = self._library.TT_DoLogin(self._instance,
                                           nickname, server_password,
@@ -63,19 +63,18 @@ class TT4:
 
     def change_status(self, mode, message=""):
         self._library.TT_DoChangeStatus(self._instance,
-                                        mode, message.encode('utf8'))
+                                        mode, _ttstr(message))
 
     def get_channel_id_from_path(self, path):
         channel_id = self._library.TT_GetChannelIDFromPath(self._instance,
-                                                           path.encode('utf8'))
+                                                           _ttstr(path))
         if not channel_id:
             fail_with_error("Invalid channel path")
         return channel_id
 
     def join_channel_by_id(self, channel_id, channel_password=''):
-        channel_password = (channel_password or '').encode('utf8')
         command_id = self._library.TT_DoJoinChannelByID(
-            self._instance, channel_id, channel_password)
+            self._instance, channel_id, _ttstr(channel_password))
 
         if command_id <= 0:
             fail_with_error("Unable to join the channel")

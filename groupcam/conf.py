@@ -1,3 +1,5 @@
+import collections
+
 import os
 
 import yaml
@@ -16,8 +18,9 @@ def load_config(config_path=None):
     """
 
     defaults = _load_defaults()
-    custom_config = _load_custom_config(config_path)
-    _deep_update(defaults, custom_config)
+    if config_path is not None:
+        custom_config = _load_custom_config(config_path)
+        _deep_update(defaults, custom_config)
     config.update(defaults)
 
 
@@ -42,4 +45,10 @@ def _load_custom_config(config_path):
 
 
 def _deep_update(dest, src):
-    pass
+    for key, value in src.items():
+        if isinstance(value, collections.Mapping):
+            dest_val = dest.get(key, {})
+            dest[key] = _deep_update(dest_val, value)
+        else:
+            dest[key] = src[key]
+    return dest
