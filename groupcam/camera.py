@@ -72,7 +72,7 @@ class Camera:
     def _set_device_format(self):
         fmt = v4l2.v4l2_format()
         fmt.type = v4l2.V4L2_BUF_TYPE_VIDEO_OUTPUT
-        fmt.fmt.pix.pixelformat = v4l2.V4L2_PIX_FMT_RGB32
+        fmt.fmt.pix.pixelformat = v4l2.V4L2_PIX_FMT_BGR32
         fmt.fmt.pix.width = self._width
         fmt.fmt.pix.height = self._height
         fmt.fmt.pix.field = v4l2.V4L2_FIELD_NONE
@@ -90,7 +90,7 @@ class Camera:
         self._device.write(self._data)
 
     def _draw_title(self):
-        self._context.set_source_rgb(1., 0, 0)
+        self._context.set_source_rgb(0, 0, 1.)
         self._context.rectangle(0, 0, 1, 0.16)
         self._context.fill()
         self._context.set_font_size(0.14)
@@ -103,9 +103,10 @@ class Camera:
         users = sorted(self._users.values(), key=sort_key)
         for user in users:
             self._context.save()
-            self._context.set_source_surface(user.image_surface)
-            self._context.move_to(user.top, user.bottom)
-            self._context.scale(user.width, user.height)
+            top, bottom, width, height = user.display_rect
+            self._context.translate(top, bottom)
+            self._context.scale(width * 0.003, height * 0.003)
+            self._context.set_source_surface(user.surface)
             self._context.paint()
             self._context.restore()
 
