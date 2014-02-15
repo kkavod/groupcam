@@ -1,11 +1,15 @@
 import re
 
+from datetime import datetime
+
 import fcntl
 
 import v4l2
 
 import cairo
+
 import numpy
+from math import sqrt
 
 from groupcam.conf import config
 from groupcam.core import fail_with_error
@@ -17,12 +21,7 @@ class Camera:
     def __init__(self):
         self._users = {}
 
-        regexp_string = config['video']['nickname_regexp']
-        self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
-        self._width = config['video']['width']
-        self._height = config['video']['height']
-        self._title = config['video']['title']
-
+        self._()
         self._init_device()
         self._init_surface()
 
@@ -43,6 +42,14 @@ class Camera:
         if user_id in self._users:
             del self._users[user_id]
             self._update()
+
+    def _(self):
+        regexp_string = config['video']['nickname_regexp']
+        self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
+        self._width = config['video']['width']
+        self._height = config['video']['height']
+        self._title = config['video']['title']
+        self._title_height = config['video']['title_height'] / 100.
 
     def _init_device(self):
         device_name = config['video']['device']
@@ -91,7 +98,7 @@ class Camera:
 
     def _draw_title(self):
         self._context.set_source_rgb(0, 0, 1.)
-        self._context.rectangle(0, 0, 1, 0.16)
+        self._context.rectangle(0, 0, 1, self._title_height)
         self._context.fill()
         self._context.set_font_size(0.14)
         self._context.move_to(0, 0.14)
@@ -99,9 +106,7 @@ class Camera:
         self._context.show_text(self._title)
 
     def _draw_users(self):
-        sort_key = lambda user: user.nickname
-        users = sorted(self._users.values(), key=sort_key)
-        for user in users:
+        for user in self._users.values():
             self._context.save()
             top, bottom, width, height = user.display_rect
             self._context.translate(top, bottom)
@@ -112,6 +117,31 @@ class Camera:
 
     def _update_users(self):
         padding = config['video']['user_padding'] / 100.
+        display_height = 1. - self._title_height - padding * 2
+        filled_area = display_height / (.5 + len(self._users))
+        user_size = sqrt(filled_area)
+        cols_number = 1. / user_size
+        rows_number = display_height / user_size
+
+        if cols_number * user_size > 1.:
+            user_size = 1. / cols_number
+
+        if rows_number * user_size > display_height:
+            user_size = display_height / rows_number
+
+        left = 1. - (1. + user_size * cols_number) / 2
+        top = 1. - (display_height + user_size * rows_number) / 2 - padding
+
+        sort_key = lambda user: user.nickname
+        users = sorted(self._users.values(), key=sort_key)
+        for index, user in enumerate(users):
+            x = left + (index % cols_number * user_size)
+            y = top + (index % cols_number * user_size)
+            user.display_rect = (x, y, user_size, user_size)
+
+            seconds = (user.updated - datetime.now()).seconds
+            if seconds > config['video']['user_timeout']:
+                del self._users[user.id]
 
     def __del__(self):
         self._device.close()

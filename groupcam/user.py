@@ -13,7 +13,7 @@ class User:
         self.surface = None
         self.img_width = self.img_height = 0
         self.display_rect = (0, 0, 1, 1)
-        self._updated = datetime.now()
+        self.updated = datetime.now()
         self._data = None
 
     def update(self):
@@ -26,9 +26,10 @@ class User:
                 self.img_height != video_format.height):
             self._init_surface(video_format)
 
-        tt4.get_user_video_frame(self.user_id, self._data,
-                                 len(self._data) * 4, video_format)
-
+        result = tt4.get_user_video_frame(self.user_id, self._data,
+                                          len(self._data) * 4, video_format)
+        if result:
+            self.updated = datetime.now()
         return True
 
     def _init_surface(self, video_format):
