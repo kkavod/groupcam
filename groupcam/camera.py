@@ -101,8 +101,17 @@ class Camera:
         self._context.set_source_rgb(0, 0, 1.)
         self._context.rectangle(0, 0, 1, self._title_height)
         self._context.fill()
-        self._context.set_font_size(0.14)
-        self._context.move_to(0, 0.14)
+
+        self._context.set_font_size(1.)
+        text_width, text_height = self._context.text_extents(self._title)[2:4]
+
+        title_padding = config['video']['title_padding'] / 100.
+        font_size = min((1. - title_padding) / text_width,
+                        (self._title_height - title_padding) / text_height)
+        self._context.set_font_size(font_size)
+
+        left = 1. - (1. + text_width * font_size) / 2
+        self._context.move_to(left, font_size - 0.01)
         self._context.set_source_rgb(1., 1., 1.)
         self._context.show_text(self._title)
 
@@ -146,15 +155,16 @@ class Camera:
             user_size = display_height / rows_number
 
         left = 1. - (1. + user_size * cols_number) / 2
-        top = 1. - (display_height + user_size * rows_number) / 2 - padding
+        top = 1. - (display_height + user_size * rows_number) / 2
 
         sort_key = lambda user: user.nickname
         users = sorted(self._users.values(), key=sort_key)
         for index, user in enumerate(users):
-            x = left + (float(index) % cols_number * user_size)
-            y = top + index / cols_number * user_size
-            user.display_rect = (x, y, user_size, user_size)
-            print(index, x, y, top)
+            x = left + (index % cols_number * user_size)
+            y = top + int(index / cols_number) * user_size
+            user.display_rect = (x, y,
+                                 user_size - padding,
+                                 user_size - padding)
 
             seconds = (datetime.now() - user.updated).seconds
             if seconds > config['video']['user_timeout']:
