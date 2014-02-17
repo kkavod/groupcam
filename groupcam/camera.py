@@ -49,7 +49,9 @@ class Camera:
         self._width = config['video']['width']
         self._height = config['video']['height']
         self._title = config['video']['title']
-        self._title_height = config['video']['title_height'] / 100.
+        self._title_filling = 1. - config['video']['title_padding'] / 100.
+        self._title_height = (
+            self._height * config['video']['title_height'] / 100.)
 
     def _init_device(self):
         device_name = config['video']['device']
@@ -67,7 +69,6 @@ class Camera:
             self._data, cairo.FORMAT_ARGB32,
             self._width, self._height, self._width * 4)
         self._context = cairo.Context(self._surface)
-        self._context.scale(self._width, self._height)
 
     def _get_device_capability(self):
         capability = v4l2.v4l2_capability()
@@ -99,25 +100,28 @@ class Camera:
 
     def _draw_title(self):
         self._context.set_source_rgb(0, 0, 1.)
-        self._context.rectangle(0, 0, 1, self._title_height)
+        self._context.rectangle(0, 0, self._width, self._title_height)
         self._context.fill()
 
-        self._context.set_font_size(1.)
+        self._context.set_font_size(self._height)
         text_width, text_height = self._context.text_extents(self._title)[2:4]
 
-        title_padding = config['video']['title_padding'] / 100.
-        font_size = min((1. - title_padding) / text_width,
-                        (self._title_height - title_padding) / text_height)
+        factor = min(self._width * self._title_filling / text_width,
+                     self._title_height * self._title_filling / text_height)
+        font_size = self._height * factor
         self._context.set_font_size(font_size)
 
-        left = 1. - (1. + text_width * font_size) / 2
-        self._context.move_to(left, font_size - 0.01)
+        left = self._width - (self._width + text_width * factor) / 2
+        top = (self._title_height -
+               (self._title_height - text_height * factor) / 2)
+        self._context.move_to(left, top)
         self._context.set_source_rgb(1., 1., 1.)
         self._context.show_text(self._title)
 
     def _draw_background(self):
         self._context.set_source_rgb(0, 0, 0)
-        self._context.rectangle(0, self._title_height, 1, 1)
+        self._context.rectangle(0, self._title_height,
+                                self._width, self._height)
         self._context.fill()
 
     def _draw_users(self):
@@ -135,36 +139,47 @@ class Camera:
                 self._draw_user_labels(left, top, str(user.user_id))
 
     def _draw_user_labels(self, left, top, label):
-        self._context.set_font_size(0.05)
-        self._context.move_to(left, top + 0.05)
+        font_size = self._height * 0.05
+        self._context.set_font_size(font_size)
+        self._context.move_to(left, top + font_size)
         self._context.set_source_rgb(0.4, 1., 0.4)
         self._context.show_text(label)
 
     def _update_users(self):
-        padding = config['video']['user_padding'] / 100.
-        display_height = 1. - self._title_height - padding * 2
-        filled_area = display_height / (.5 + len(self._users))
-        user_size = sqrt(filled_area)
-        cols_number = round(1. / user_size)
-        rows_number = round(display_height / user_size)
+        padding = config['video']['user_padding'] / 100. * self._height
 
-        if cols_number * user_size > 1.:
-            user_size = 1. / cols_number
+        display_width = self._width
+        display_height = self._height - self._title_height - padding * 2
 
-        if rows_number * user_size > display_height:
-            user_size = display_height / rows_number
+        aspect_ratio = self._width / self._height
+        pixels_total = self._width * display_height / (.5 + len(self._users))
 
-        left = 1. - (1. + user_size * cols_number) / 2
-        top = 1. - (display_height + user_size * rows_number) / 2
+        user_width = round(sqrt(pixels_total * aspect_ratio))
+        user_height = round(sqrt(pixels_total / aspect_ratio))
+
+        cols_number = round(display_width / user_width)
+        rows_number = round(display_height / user_height)
+
+        if cols_number * user_width > display_width:
+            user_width = display_width / cols_number
+            user_height = user_width / aspect_ratio
+
+        if rows_number * user_height > display_height:
+            user_height = display_height / rows_number
+            user_width = user_height * aspect_ratio
+
+        left = self._width - (display_width + user_width * cols_number) / 2
+        top = (self._height -
+               (display_height + user_height * rows_number) / 2 - padding)
 
         sort_key = lambda user: user.nickname
         users = sorted(self._users.values(), key=sort_key)
         for index, user in enumerate(users):
-            x = left + (index % cols_number * user_size)
-            y = top + int(index / cols_number) * user_size
+            x = left + (index % cols_number * user_width)
+            y = top + int(index / cols_number) * user_height + padding
             user.display_rect = (x, y,
-                                 user_size - padding,
-                                 user_size - padding)
+                                 user_width - padding,
+                                 user_height - padding)
 
             seconds = (datetime.now() - user.updated).seconds
             if seconds > config['video']['user_timeout']:
