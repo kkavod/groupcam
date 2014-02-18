@@ -1,7 +1,7 @@
 from time import sleep
 
 from groupcam.conf import config
-from groupcam.core import logger
+from groupcam.core import logger, options
 from groupcam.tt4 import tt4
 from groupcam.tt4.consts import StatusMode, ClientEvent
 from groupcam.camera import Camera
@@ -27,6 +27,9 @@ class Client:
             message = tt4.get_message()
             code = message.code
 
+            if options.debug:
+                logger.debug("Got message with code {}".format(code))
+
             if code == ClientEvent.WM_TEAMTALK_CON_SUCCESS:
                 command_id = tt4.login()
                 self._commands[command_id] = (
@@ -49,7 +52,7 @@ class Client:
             elif code == ClientEvent.WM_TEAMTALK_USER_VIDEOFRAME:
                 if message.first_param != self._user_id:
                     self._camera.process_user_frame(message.first_param,
-                                              message.second_param)
+                                                    message.second_param)
             elif code == ClientEvent.WM_TEAMTALK_CMD_PROCESSING:
                 self._process_command(message.first_param,
                                       bool(message.second_param))

@@ -13,11 +13,11 @@ server:
 
 video:
     title: Groupcam Demo
-    title_padding: 5
+    title_padding: 10
     nickname_regexp: .*scandinavia.*
     width: 640
     height: 480
     title_height: 16
     user_padding: 0.5
     device: /dev/video1
-    user_timeout: 5
+    user_timeout: 10

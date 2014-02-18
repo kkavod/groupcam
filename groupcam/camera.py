@@ -50,8 +50,9 @@ class Camera:
         self._height = config['video']['height']
         self._title = config['video']['title']
         self._title_filling = 1. - config['video']['title_padding'] / 100.
-        self._title_height = (
-            self._height * config['video']['title_height'] / 100.)
+        self._title_height = (self._height *
+                              config['video']['title_height'] / 100.)
+        self._padding = config['video']['user_padding'] / 100. * self._height
 
     def _init_device(self):
         device_name = config['video']['device']
@@ -146,10 +147,8 @@ class Camera:
         self._context.show_text(label)
 
     def _update_users(self):
-        padding = config['video']['user_padding'] / 100. * self._height
-
         display_width = self._width
-        display_height = self._height - self._title_height - padding * 2
+        display_height = self._height - self._title_height - self._padding * 2
 
         aspect_ratio = self._width / self._height
         pixels_total = self._width * display_height / (.5 + len(self._users))
@@ -170,20 +169,22 @@ class Camera:
 
         left = self._width - (display_width + user_width * cols_number) / 2
         top = (self._height -
-               (display_height + user_height * rows_number) / 2 - padding)
+               (display_height + user_height * rows_number) / 2 - self._padding)
 
         sort_key = lambda user: user.nickname
         users = sorted(self._users.values(), key=sort_key)
         for index, user in enumerate(users):
             x = left + (index % cols_number * user_width)
-            y = top + int(index / cols_number) * user_height + padding
+            y = top + int(index / cols_number) * user_height + self._padding
             user.display_rect = (x, y,
-                                 user_width - padding,
-                                 user_height - padding)
+                                 user_width - self._padding,
+                                 user_height - self._padding)
+            self._remove_user_if_dead(user)
 
-            seconds = (datetime.now() - user.updated).seconds
-            if seconds > config['video']['user_timeout']:
-                del self._users[user.user_id]
+    def _remove_user_if_dead(self, user):
+        seconds = (datetime.now() - user.updated).seconds
+        if seconds > config['video']['user_timeout']:
+            del self._users[user.user_id]
 
     def __del__(self):
         self._device.close()
