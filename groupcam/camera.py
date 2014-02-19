@@ -24,6 +24,7 @@ class Camera:
         self._load_settings()
         self._init_device()
         self._init_surface()
+        self._update()
 
     def process_user_frame(self, user_id, frames_count):
         profile = tt4.get_user(user_id)
@@ -49,7 +50,7 @@ class Camera:
         self._width = config['video']['width']
         self._height = config['video']['height']
         self._title = config['video']['title']
-        self._title_filling = 1. - config['video']['title_padding'] / 100.
+        self._title_padding = config['video']['title_padding'] / 100.
         self._title_height = (self._height *
                               config['video']['title_height'] / 100.)
         self._padding = config['video']['user_padding'] / 100. * self._height
@@ -95,8 +96,11 @@ class Camera:
     def _update(self):
         self._draw_title()
         self._draw_background()
-        self._update_users()
-        self._draw_users()
+        if self._users:
+            self._update_users()
+            self._draw_users()
+        else:
+            self._draw_no_users()
         self._device.write(self._data)
 
     def _draw_title(self):
@@ -104,26 +108,24 @@ class Camera:
         self._context.rectangle(0, 0, self._width, self._title_height)
         self._context.fill()
 
-        self._context.set_font_size(self._height)
-        text_width, text_height = self._context.text_extents(self._title)[2:4]
-
-        factor = min(self._width * self._title_filling / text_width,
-                     self._title_height * self._title_filling / text_height)
-        font_size = self._height * factor
-        self._context.set_font_size(font_size)
-
-        left = self._width - (self._width + text_width * factor) / 2
-        top = (self._title_height -
-               (self._title_height - text_height * factor) / 2)
-        self._context.move_to(left, top)
-        self._context.set_source_rgb(1., 1., 1.)
-        self._context.show_text(self._title)
+        horizontal_padding = self._width * self._title_padding
+        vertical_padding = self._title_height * self._title_padding
+        title_rect = (horizontal_padding, vertical_padding,
+                      self._width - horizontal_padding * 2,
+                      self._title_height - vertical_padding * 2)
+        self._fit_text_to_rect(self._title, title_rect)
 
     def _draw_background(self):
         self._context.set_source_rgb(0, 0, 0)
         self._context.rectangle(0, self._title_height,
                                 self._width, self._height)
         self._context.fill()
+
+    def _draw_no_users(self):
+        message = config['video']['no_users_message']
+        display_rect = (self._width * 0.1, self._title_height,
+                        self._width * 0.8, self._height - self._title_height)
+        self._fit_text_to_rect(message, display_rect)
 
     def _draw_users(self):
         for user in self._users.values():
@@ -167,9 +169,10 @@ class Camera:
             user_height = display_height / rows_number
             user_width = user_height * aspect_ratio
 
-        left = self._width - (display_width + user_width * cols_number) / 2
-        top = (self._height -
-               (display_height + user_height * rows_number) / 2 - self._padding)
+        horizontal_middle = (display_width + user_width * cols_number) / 2
+        vertical_middle = (display_height + user_height * rows_number) / 2
+        left = self._width - horizontal_middle
+        top = self._height - vertical_middle - self._padding
 
         sort_key = lambda user: user.nickname
         users = sorted(self._users.values(), key=sort_key)
@@ -184,7 +187,24 @@ class Camera:
     def _remove_user_if_dead(self, user):
         seconds = (datetime.now() - user.updated).seconds
         if seconds > config['video']['user_timeout']:
-            del self._users[user.user_id]
+            self.remove_user(user.user_id)
+
+    def _fit_text_to_rect(self, text, rect, color=(1., 1., 1.)):
+        rect_left, rect_top, rect_width, rect_height = rect
+
+        self._context.set_font_size(self._height)
+        text_width, text_height = self._context.text_extents(text)[2:4]
+
+        factor = min(rect_width / text_width, rect_height / text_height)
+        font_size = self._height * factor
+        self._context.set_font_size(font_size)
+
+        left = rect_left + rect_width - (rect_width + text_width * factor) / 2
+        top = rect_top + rect_height - (rect_height - text_height * factor) / 2
+
+        self._context.move_to(left, top)
+        self._context.set_source_rgb(*color)
+        self._context.show_text(text)
 
     def __del__(self):
         self._device.close()

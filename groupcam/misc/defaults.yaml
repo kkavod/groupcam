@@ -21,3 +21,4 @@ video:
     user_padding: 0.5
     device: /dev/video1
     user_timeout: 10
+    no_users_message: No cameras available
