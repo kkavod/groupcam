@@ -1,17 +1,6 @@
 # Groupcam config defaults
 
-server:
-    host: unity.kbb1.com
-    tcp_port: 10333
-    udp_port: 10333
-    server_password: malhut
-    nickname: Groupcam
-    channel_path: /unity/scandinavian
-    channel_password:
-    user_name:
-    user_password:
-
-video:
+camera:
     title: Groupcam Demo
     title_padding: 10
     nickname_regexp: .*scandinavia.*
@@ -22,3 +11,26 @@ video:
     device: /dev/video1
     user_timeout: 10
     no_users_message: No cameras available
+
+servers:
+    source:
+        host: unity.kbb1.com
+        tcp_port: 10333
+        udp_port: 10333
+        server_password: malhut
+        nickname: Groupcam (In)
+        channel_path: /unity/scandinavian
+        channel_password:
+        user_name:
+        user_password:
+
+    destination:
+        host: unity.kbb1.com
+        tcp_port: 10333
+        udp_port: 10333
+        server_password: malhut
+        nickname: Groupcam (Out)
+        channel_path: /unity/scandinavian
+        channel_password:
+        user_name:
+        user_password:

@@ -13,7 +13,6 @@ from math import sqrt
 
 from groupcam.conf import config
 from groupcam.core import options, fail_with_error
-from groupcam.tt4 import tt4
 from groupcam.user import User
 
 
@@ -26,16 +25,14 @@ class Camera:
         self._init_surface()
         self._update()
 
-    def process_user_frame(self, user_id, frames_count):
-        profile = tt4.get_user(user_id)
-        nickname = str(profile.nickname, 'utf8')
+    def process_user_frame(self, user_id, nickname, frames_count):
         match = self._nickname_regexp.match(nickname)
 
         if match is not None:
             if user_id in self._users:
                 user = self._users[user_id]
             else:
-                user = User(user_id, profile.nickname)
+                user = User(user_id, nickname)
                 self._users[user_id] = user
             user.update() and self._update()
 
@@ -45,18 +42,18 @@ class Camera:
             self._update()
 
     def _load_settings(self):
-        regexp_string = config['video']['nickname_regexp']
+        regexp_string = config['camera']['nickname_regexp']
         self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
-        self._width = config['video']['width']
-        self._height = config['video']['height']
-        self._title = config['video']['title']
-        self._title_padding = config['video']['title_padding'] / 100.
+        self._width = config['camera']['width']
+        self._height = config['camera']['height']
+        self._title = config['camera']['title']
+        self._title_padding = config['camera']['title_padding'] / 100.
         self._title_height = (self._height *
-                              config['video']['title_height'] / 100.)
-        self._padding = config['video']['user_padding'] / 100. * self._height
+                              config['camera']['title_height'] / 100.)
+        self._padding = config['camera']['user_padding'] / 100. * self._height
 
     def _init_device(self):
-        device_name = config['video']['device']
+        device_name = config['camera']['device']
         try:
             self._device = open(device_name, 'wb')
         except FileNotFoundError:
@@ -122,7 +119,7 @@ class Camera:
         self._context.fill()
 
     def _draw_no_users(self):
-        message = config['video']['no_users_message']
+        message = config['camera']['no_users_message']
         display_rect = (self._width * 0.1, self._title_height,
                         self._width * 0.8, self._height - self._title_height)
         self._fit_text_to_rect(message, display_rect)
@@ -186,7 +183,7 @@ class Camera:
 
     def _remove_user_if_dead(self, user):
         seconds = (datetime.now() - user.updated).seconds
-        if seconds > config['video']['user_timeout']:
+        if seconds > config['camera']['user_timeout']:
             self.remove_user(user.user_id)
 
     def _fit_text_to_rect(self, text, rect, color=(1., 1., 1.)):

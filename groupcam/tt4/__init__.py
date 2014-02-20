@@ -15,7 +15,8 @@ class TT4:
     """TT4 API wrapper.
     """
 
-    def __init__(self):
+    def __init__(self, server_config):
+        self._server_config = server_config
         self._library = self._get_library()
         self._instance = self._library.TT_InitTeamTalkPoll()
 
@@ -29,9 +30,9 @@ class TT4:
         if flags & consts.ClientFlag.CLIENT_CONNECTION:
             return
 
-        host = config['server']['host']
-        tcp_port = config['server']['tcp_port']
-        udp_port = config['server']['udp_port']
+        host = self._server_config['host']
+        tcp_port = self._server_config['tcp_port']
+        udp_port = self._server_config['udp_port']
         result = self._library.TT_Connect(self._instance,
                                           _ttstr(host),
                                           tcp_port, udp_port, 0, 0)
@@ -48,10 +49,10 @@ class TT4:
         return message
 
     def login(self):
-        nickname = _ttstr(config['server']['nickname'])
-        server_password = _ttstr(config['server']['server_password'])
-        user_name = _ttstr(config['server']['user_name'])
-        user_password = _ttstr(config['server']['user_password'])
+        nickname = _ttstr(self._server_config['nickname'])
+        server_password = _ttstr(self._server_config['server_password'])
+        user_name = _ttstr(self._server_config['user_name'])
+        user_password = _ttstr(self._server_config['user_password'])
 
         result = self._library.TT_DoLogin(self._instance,
                                           nickname, server_password,
@@ -98,6 +99,9 @@ class TT4:
             self._instance, user_id, data_ptr, bytes_number, format_ptr)
         return bool(ret_code)
 
+    def start_broadcast(self):
+        pass
+
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
@@ -105,4 +109,7 @@ class TT4:
         self._library.TT_CloseTeamTalk(self._instance)
 
 
-tt4 = TT4()
+tt4 = {
+    server_name: TT4(server_config)
+    for server_name, server_config in config['servers']
+}

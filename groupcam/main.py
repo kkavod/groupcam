@@ -11,6 +11,8 @@ def main():
     initialize()
 
     # Processing
-    Client().run()
+    source_client = Client()
+    while True:
+        source_client.poll()
 
     logger.info("Finished.")
