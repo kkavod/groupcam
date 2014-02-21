@@ -100,10 +100,53 @@ class TT4:
         return bool(ret_code)
 
     def start_broadcast(self):
-        pass
+        device_id = self._find_device()
+        video_codec = structs.VideoCodec()
+        video_codec.codec = structs.THEORA_CODEC
+        video_codec.theora.target_bitrate = 0
+        video_codec.theora.quality = config['camera']['quality']
+
+        capture_format = structs.CaptureFormat()
+        capture_format.width = config['camera']['width']
+        capture_format.height = config['camera']['height']
+        capture_format.numerator = config['camera']['fps']
+        capture_format.denominator = 1
+        capture_format.four_cc = structs.FOURCC_RGB32
+        ret_code = self._library.TT_InitVideoCaptureDevice(
+            self._instance,
+            device_id,
+            ctypes.pointer(capture_format),
+            ctypes.pointer(video_codec)
+        )
+
+        if ret_code:
+            pass
 
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
+
+    def _find_device(self):
+        device_id = None
+
+        device_number = None
+        device_number_ptr = ctypes.pointer(device_number)
+        self._library.TT_GetVideoCaptureDevices(self._instance,
+                                                None, device_number_ptr)
+        device_path = config['camera']['device']
+        if device_number:
+            video_devices = structs.VideoCaptureDevice * device_number
+            self._library.TT_GetVideoCaptureDevices(self._instance,
+                                                    video_devices,
+                                                    device_number_ptr)
+            for index in range(device_number):
+                device_id = str(video_devices[index].device_id, 'utf-8')
+                if device_id.starts_with(device_path):
+                    break
+
+        if device_id is None:
+            fail_with_error("Device {} not found".format(device_path))
+
+        return device_id
 
     def __del__(self):
         self._library.TT_CloseTeamTalk(self._instance)

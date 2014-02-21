@@ -1,6 +1,6 @@
 from groupcam.core import logger
 from groupcam.core import initialize
-from groupcam.client import Client
+from groupcam.client import poll_clients
 
 
 def main():
@@ -11,8 +11,7 @@ def main():
     initialize()
 
     # Processing
-    source_client = Client()
     while True:
-        source_client.poll()
+        poll_clients()
 
     logger.info("Finished.")
