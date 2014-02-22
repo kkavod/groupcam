@@ -1,3 +1,6 @@
+# Interval in ms
+POLL_INTERVAL = 200
+
 WM_USER = 0
 
 

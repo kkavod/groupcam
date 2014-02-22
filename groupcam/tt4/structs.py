@@ -1,21 +1,30 @@
 import ctypes
 
 
-#  The length of a string (characters, not bytes) which is used to
-#  extract information from this DLL.
+# The length of a string (characters, not bytes) which is used to
+# extract information from this DLL.
 #
-#  If a string is passed to the client instance is longer than
-#  TT_STRLEN it will be truncated.
+# If a string is passed to the client instance is longer than
+# TT_STRLEN it will be truncated.
 #
-#  On Windows the client instance converts unicode characters to
-#  UTF-8 before transmission, so be aware of non-ASCII characters
-#  if communicating with the TeamTalk server from another
-#  applications than the TeamTalk client.
+# On Windows the client instance converts unicode characters to
+# UTF-8 before transmission, so be aware of non-ASCII characters
+# if communicating with the TeamTalk server from another
+# applications than the TeamTalk client.
 TT_STRLEN = 512
 
 #  The maximum number of video formats which will be queried
 #  for a VideoCaptureDevice.
 TT_CAPTUREFORMATS_MAX = 128
+
+
+# Enum specifying data transmission types
+TransmitType = ctypes.c_uint
+(
+    TRANSMIT_NONE,
+    TRANSMIT_AUDIO,
+    TRANSMIT_VIDEO,
+) = list(range(3))
 
 
 # The codecs supported.
@@ -54,8 +63,8 @@ class VideoCodec(ctypes.Structure):
         ]
 
     _fields_ = [
-        ('codec', ctypes.c_int32),
-        ('_u', _u),
+        ('codec', Codec),
+        ('param', _u),
     ]
 
 
@@ -63,7 +72,7 @@ class CaptureFormat(ctypes.Structure):
     _fields_ = [
         ('width', ctypes.c_int32),
         ('height', ctypes.c_int32),
-        ('fps_numberator', ctypes.c_int32),
+        ('fps_numerator', ctypes.c_int32),
         ('fps_denominator', ctypes.c_int32),
         ('four_cc', FourCC),
     ]
@@ -123,5 +132,5 @@ class CaptureFormat(ctypes.Structure):
         ('height', ctypes.c_int32),
         ('fps_numerator', ctypes.c_int32),
         ('fps_denominator', ctypes.c_int32),
-        ('pic_four_cc', ctypes.c_uint32),
+        ('four_cc', ctypes.c_uint32),
     ]

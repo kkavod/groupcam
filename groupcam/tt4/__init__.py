@@ -15,6 +15,20 @@ class TT4:
     """TT4 API wrapper.
     """
 
+    _all_instances = {}
+
+    @classmethod
+    def singleton(cls, config_name):
+        if config_name in cls._all_instances:
+            result = cls._all_instances[config_name]
+        else:
+            result = TT4(config['servers'][config_name])
+        return result
+
+    @classmethod
+    def get_instance(cls, config_name):
+        return cls._all_instances.get(config_name)
+
     def __init__(self, server_config):
         self._server_config = server_config
         self._library = self._get_library()
@@ -41,7 +55,7 @@ class TT4:
 
     def get_message(self):
         message = structs.TTMessage()
-        wait_ms_ptr = ctypes.pointer(ctypes.c_int32(-1))
+        wait_ms_ptr = ctypes.pointer(ctypes.c_int32(consts.POLL_INTERVAL))
         result = self._library.TT_GetMessage(
             self._instance, ctypes.pointer(message), wait_ms_ptr)
         if not result:
@@ -103,15 +117,16 @@ class TT4:
         device_id = self._find_device()
         video_codec = structs.VideoCodec()
         video_codec.codec = structs.THEORA_CODEC
-        video_codec.theora.target_bitrate = 0
-        video_codec.theora.quality = config['camera']['quality']
+        video_codec.param.theora.target_bitrate = 0
+        video_codec.param.theora.quality = config['camera']['quality']
 
         capture_format = structs.CaptureFormat()
         capture_format.width = config['camera']['width']
         capture_format.height = config['camera']['height']
-        capture_format.numerator = config['camera']['fps']
-        capture_format.denominator = 1
+        capture_format.fps_numerator = config['camera']['fps']
+        capture_format.fps_denominator = 1
         capture_format.four_cc = structs.FOURCC_RGB32
+
         ret_code = self._library.TT_InitVideoCaptureDevice(
             self._instance,
             device_id,
@@ -120,7 +135,10 @@ class TT4:
         )
 
         if ret_code:
-            pass
+            self._library.TT_EnableTransmission(
+                self._instance, structs.TRANSMIT_VIDEO, True)
+        else:
+            fail_with_error("Unable to start broadcast")
 
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
@@ -128,19 +146,20 @@ class TT4:
     def _find_device(self):
         device_id = None
 
-        device_number = None
+        device_number = ctypes.c_uint32()
         device_number_ptr = ctypes.pointer(device_number)
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
         device_path = config['camera']['device']
         if device_number:
-            video_devices = structs.VideoCaptureDevice * device_number
+            video_devices = (structs.VideoCaptureDevice *
+                             device_number.value)()
             self._library.TT_GetVideoCaptureDevices(self._instance,
                                                     video_devices,
                                                     device_number_ptr)
-            for index in range(device_number):
+            for index in range(device_number.value):
                 device_id = str(video_devices[index].device_id, 'utf-8')
-                if device_id.starts_with(device_path):
+                if device_path == device_id.split(',')[0]:
                     break
 
         if device_id is None:
@@ -150,9 +169,3 @@ class TT4:
 
     def __del__(self):
         self._library.TT_CloseTeamTalk(self._instance)
-
-
-tt4 = {
-    server_name: TT4(server_config)
-    for server_name, server_config in config['servers']
-}

@@ -1,17 +1,19 @@
 from time import sleep
 
 from groupcam.conf import config
-from groupcam.core import logger, options
+from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4
 from groupcam.tt4.consts import StatusMode, ClientEvent
 from groupcam.camera import Camera
-from groupcam.core import get_child_logger
 
 
 _clients = []
 
 
 def poll_clients():
+    """Module entry point.
+    """
+
     global _clients
     if not _clients:
         _clients += [SourceClient(), DestinationClient()]
@@ -27,10 +29,12 @@ COMPLETE_COMMANDS = {
 
 
 class BaseClient:
-    def __init__(self, server_config):
+    _config_name = None
+
+    def __init__(self):
         self._logger = None
-        self._server_config = server_config
-        self._tt4 = TT4(server_config)
+        self._server_config = config['servers'][self._config_name]
+        self._tt4 = TT4.singleton(self._config_name)
         self._user_id = None
         self._status_mode = StatusMode.AVAILABLE
         self._commands = {}
@@ -130,8 +134,11 @@ class BaseClient:
 
 
 class SourceClient(BaseClient):
+    _config_name = 'source'
+
     def __init__(self):
-        super().__init__(config['servers']['source'])
+        super().__init__()
+
         self._camera = Camera()
         self._logger = get_child_logger('source')
 
@@ -148,7 +155,13 @@ class SourceClient(BaseClient):
 
 
 class DestinationClient(BaseClient):
+    _config_name = 'destination'
+
     def __init__(self):
-        super().__init__(config['servers']['destination'])
+        super().__init__()
+
         self._logger = get_child_logger('source')
         self._tt4.start_broadcast()
+        self._status_mode |= StatusMode.VIDEOTX
+        self._tt4.change_status(self._status_mode)
+        self._logger.info("Broadcast started")

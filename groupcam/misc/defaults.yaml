@@ -11,6 +11,8 @@ camera:
     device: /dev/video1
     user_timeout: 10
     no_users_message: No cameras available
+    quality: 50
+    fps: 1
 
 servers:
     source:
