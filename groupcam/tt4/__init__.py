@@ -56,11 +56,10 @@ class TT4:
     def get_message(self):
         message = structs.TTMessage()
         wait_ms_ptr = ctypes.pointer(ctypes.c_int32(consts.POLL_INTERVAL))
-        result = self._library.TT_GetMessage(
+        ret_code = self._library.TT_GetMessage(
             self._instance, ctypes.pointer(message), wait_ms_ptr)
-        if not result:
-            fail_with_error("Failed to get a message")
-        return message
+        result = None if ret_code <= 0 else message
+        return result
 
     def login(self):
         nickname = _ttstr(self._server_config['nickname'])
@@ -151,7 +150,7 @@ class TT4:
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
         device_path = config['camera']['device']
-        if device_number:
+        if device_number.value > 0:
             video_devices = (structs.VideoCaptureDevice *
                              device_number.value)()
             self._library.TT_GetVideoCaptureDevices(self._instance,

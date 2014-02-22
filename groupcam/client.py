@@ -32,7 +32,7 @@ class BaseClient:
     _config_name = None
 
     def __init__(self):
-        self._logger = None
+        self._logger = get_child_logger(self._config_name)
         self._server_config = config['servers'][self._config_name]
         self._tt4 = TT4.singleton(self._config_name)
         self._user_id = None
@@ -42,10 +42,62 @@ class BaseClient:
 
     def poll(self):
         message = self._tt4.get_message()
+        if message is not None:
+            self._process_message(message)
+
+    def on_connection_success(self, message):
+        command_id = self._tt4.login()
+        self._commands[command_id] = (
+            COMPLETE_COMMANDS['complete_login'])
+        self._logger.info("Connected to server")
+
+    def on_connection_failed(self, message):
+        self._tt4.disconnect()
+        self._logger.error("Failed to connect to server")
+
+    def on_connection_lost(self, message):
+        self._tt4.disconnect()
+        self._logger.error("Connection to server lost, reconnecting...")
+        sleep(1.)
+        self._tt4.connect()
+
+    def on_command_myself_logged_in(self, message):
+        self._user_id = message.first_param
+        self._logger.info("Logged in to server")
+
+    def on_command_myself_logged_out(self, message):
+        self._tt4.disconnect()
+        self._logger.info("Logged out from server")
+
+    def on_user_video_frame(self, message):
+        pass
+
+    def on_command_processing(self, message):
+        command = self._commands.get(message.first_param)
+        complete = bool(message.second_param)
+
+        if command is not None and complete:
+            if command == COMPLETE_COMMANDS['complete_login']:
+                self._complete_login()
+            elif command == COMPLETE_COMMANDS['complete_join_channel']:
+                self._logger.info("Joined the channel")
+
+    def on_command_error(self, message):
+        self._logger.error("Error performing the command (error code {}"
+                           .format(message.first_param))
+        self._tt4.disconnect()
+
+    def on_command_user_logged_out(self, message):
+        pass
+
+    def on_command_user_left(self, message):
+        pass
+
+    def _process_message(self, message):
         code = message.code
 
         if options.debug:
-            logger.debug("Got message with code {}".format(code))
+            self._logger.debug("Got message with code {}".format(code))
 
         if code == ClientEvent.WM_TEAMTALK_CON_SUCCESS:
             self.on_connection_success(message)
@@ -68,55 +120,7 @@ class BaseClient:
         elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LEFT:
             self.on_command_user_left(message)
         else:
-            logger.debug("Unknown message")
-
-    def on_connection_success(self, message):
-        command_id = self._tt4.login()
-        self._commands[command_id] = (
-            COMPLETE_COMMANDS['complete_login'])
-        logger.info("Connected to server")
-
-    def on_connection_failed(self, message):
-        self._tt4.disconnect()
-        logger.error("Failed to connect to server")
-
-    def on_connection_lost(self, message):
-        self._tt4.disconnect()
-        logger.error("Connection to server lost, reconnecting...")
-        sleep(1.)
-        self._tt4.connect()
-
-    def on_command_myself_logged_in(self, message):
-        self._user_id = message.first_param
-        logger.info("Logged in to server")
-
-    def on_command_myself_logged_out(self, message):
-        self._tt4.disconnect()
-        logger.info("Logged out from server")
-
-    def on_user_video_frame(self, message):
-        pass
-
-    def on_command_processing(self, message):
-        command = self._commands.get(message.first_param)
-        complete = bool(message.second_param)
-
-        if command is not None and complete:
-            if command == COMPLETE_COMMANDS['complete_login']:
-                self._complete_login()
-            elif command == COMPLETE_COMMANDS['complete_join_channel']:
-                logger.info("Joined the channel")
-
-    def on_command_error(self, message):
-        logger.error("Error performing the command (error code {}"
-                     .format(message.first_param))
-        self._tt4.disconnect()
-
-    def on_command_user_logged_out(self, message):
-        pass
-
-    def on_command_user_left(self, message):
-        pass
+            self._logger.debug("Message with code {} is unknown".format(code))
 
     def _complete_login(self):
         self._tt4.change_status(self._status_mode)
@@ -140,7 +144,6 @@ class SourceClient(BaseClient):
         super().__init__()
 
         self._camera = Camera()
-        self._logger = get_child_logger('source')
 
     def on_user_video_frame(self, message):
         if message.first_param != self._user_id:
@@ -159,9 +162,17 @@ class DestinationClient(BaseClient):
 
     def __init__(self):
         super().__init__()
+        self._broadcast_started = False
 
-        self._logger = get_child_logger('source')
-        self._tt4.start_broadcast()
-        self._status_mode |= StatusMode.VIDEOTX
-        self._tt4.change_status(self._status_mode)
-        self._logger.info("Broadcast started")
+#          self._tt4.start_broadcast()
+#          self._status_mode |= StatusMode.VIDEOTX
+#          self._tt4.change_status(self._status_mode)
+#          self._self._logger.info("Broadcast started")
+
+    def on_user_video_frame(self, message):
+        if not self._broadcast_started:
+            self._tt4.start_broadcast()
+            self._status_mode |= StatusMode.VIDEOTX
+            self._tt4.change_status(self._status_mode)
+            self._logger.info("Broadcast started")
+            self._broadcast_started = True

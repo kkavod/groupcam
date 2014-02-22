@@ -12,7 +12,7 @@ camera:
     user_timeout: 10
     no_users_message: No cameras available
     quality: 50
-    fps: 1
+    fps: 10
 
 servers:
     source:

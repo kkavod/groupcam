@@ -53,11 +53,14 @@ class Camera:
         self._padding = config['camera']['user_padding'] / 100. * self._height
 
     def _init_device(self):
+        self._device = None
         device_name = config['camera']['device']
         try:
             self._device = open(device_name, 'wb')
         except FileNotFoundError:
-            fail_with_error("Unable open {} for writing".format(device_name))
+            fail_with_error("Device {} doesn't exist".format(device_name))
+        except OSError:
+            fail_with_error("Unable to open device {}".format(device_name))
         self._capability = self._get_device_capability()
         self._set_device_format()
 
@@ -204,4 +207,5 @@ class Camera:
         self._context.show_text(text)
 
     def __del__(self):
-        self._device.close()
+        if self._device is not None:
+            self._device.close()
