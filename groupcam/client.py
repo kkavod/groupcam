@@ -16,7 +16,8 @@ def poll_clients():
 
     global _clients
     if not _clients:
-        _clients += [SourceClient(), DestinationClient()]
+        _clients += [DestinationClient()]
+#          _clients += [SourceClient(), DestinationClient()]
     for client in _clients:
         client.poll()
 

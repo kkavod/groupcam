@@ -114,30 +114,9 @@ class TT4:
 
     def start_broadcast(self):
         device_id = self._find_device()
-        video_codec = structs.VideoCodec()
-        video_codec.codec = structs.THEORA_CODEC
-        video_codec.param.theora.target_bitrate = 0
-        video_codec.param.theora.quality = config['camera']['quality']
-
-        capture_format = structs.CaptureFormat()
-        capture_format.width = config['camera']['width']
-        capture_format.height = config['camera']['height']
-        capture_format.fps_numerator = config['camera']['fps']
-        capture_format.fps_denominator = 1
-        capture_format.four_cc = structs.FOURCC_RGB32
-
-        ret_code = self._library.TT_InitVideoCaptureDevice(
-            self._instance,
-            device_id,
-            ctypes.pointer(capture_format),
-            ctypes.pointer(video_codec)
-        )
-
-        if ret_code:
-            self._library.TT_EnableTransmission(
-                self._instance, structs.TRANSMIT_VIDEO, True)
-        else:
-            fail_with_error("Unable to start broadcast")
+        self._init_capture_device(device_id)
+        self._library.TT_EnableTransmission(self._instance,
+                                            structs.TRANSMIT_VIDEO, True)
 
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
@@ -150,6 +129,7 @@ class TT4:
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
         device_path = config['camera']['device']
+
         if device_number.value > 0:
             video_devices = (structs.VideoCaptureDevice *
                              device_number.value)()
@@ -165,6 +145,32 @@ class TT4:
             fail_with_error("Device {} not found".format(device_path))
 
         return device_id
+
+    def _init_capture_device(self, device_id):
+        theora = structs.TheoraCodec(0, config['camera']['quality'])
+
+        video_codec = structs.VideoCodec(
+            structs.THEORA_CODEC,
+            structs.VideoCodec._u(theora)
+        )
+
+        capture_format = structs.CaptureFormat(
+            config['camera']['width'],
+            config['camera']['height'],
+            config['camera']['fps'],
+            1,
+            structs.FOURCC_RGB32
+        )
+
+        ret_code = self._library.TT_InitVideoCaptureDevice(
+            self._instance,
+            _ttstr(device_id),
+            ctypes.pointer(capture_format),
+            ctypes.pointer(video_codec)
+        )
+
+        if ret_code <= 0:
+            fail_with_error("Unable to start broadcast")
 
     def __del__(self):
         self._library.TT_CloseTeamTalk(self._instance)
