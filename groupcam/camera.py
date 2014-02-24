@@ -2,6 +2,9 @@ import re
 
 from datetime import datetime
 
+import ctypes
+
+import os
 import fcntl
 
 import v4l2
@@ -20,6 +23,7 @@ class Camera:
     def __init__(self):
         self._users = {}
 
+        self._lib = self._get_v4l2_lib()
         self._load_settings()
         self._init_device()
         self._init_surface()
@@ -41,6 +45,13 @@ class Camera:
             del self._users[user_id]
             self._update()
 
+    def _get_v4l2_lib(self):
+        try:
+            lib = ctypes.cdll.LoadLibrary('libv4l2.so.0')
+        except OSError:
+            fail_with_error("Unable to load libv4l2, is it installed?")
+        return lib
+
     def _load_settings(self):
         regexp_string = config['camera']['nickname_regexp']
         self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
@@ -53,13 +64,11 @@ class Camera:
         self._padding = config['camera']['user_padding'] / 100. * self._height
 
     def _init_device(self):
-        self._device = None
+        self._device_fd = None
         device_name = config['camera']['device']
-        try:
-            self._device = open(device_name, 'wb')
-        except FileNotFoundError:
-            fail_with_error("Device {} doesn't exist".format(device_name))
-        except OSError:
+        device_name_buf = device_name.encode('utf8')
+        self._device_fd = self._lib.v4l2_open(device_name_buf, os.O_RDWR)
+        if self._device_fd == -1:
             fail_with_error("Unable to open device {}".format(device_name))
         self._capability = self._get_device_capability()
         self._set_device_format()
@@ -74,7 +83,8 @@ class Camera:
 
     def _get_device_capability(self):
         capability = v4l2.v4l2_capability()
-        ret_code = fcntl.ioctl(self._device, v4l2.VIDIOC_QUERYCAP, capability)
+        ret_code = fcntl.ioctl(self._device_fd,
+                               v4l2.VIDIOC_QUERYCAP, capability)
         if ret_code == -1:
             fail_with_error("Unable to get device capabilities")
         return capability
@@ -89,7 +99,7 @@ class Camera:
         fmt.fmt.pix.bytesperline = fmt.fmt.pix.width * 4
         fmt.fmt.pix.sizeimage = fmt.fmt.pix.width * fmt.fmt.pix.height * 4
         fmt.fmt.pix.colorspace = v4l2.V4L2_COLORSPACE_SRGB
-        ret_code = fcntl.ioctl(self._device, v4l2.VIDIOC_S_FMT, fmt)
+        ret_code = fcntl.ioctl(self._device_fd, v4l2.VIDIOC_S_FMT, fmt)
         if ret_code == -1:
             fail_with_error("Unable to get device capabilities")
 
@@ -101,7 +111,7 @@ class Camera:
             self._draw_users()
         else:
             self._draw_no_users()
-        self._device.write(self._data)
+        os.write(self._device_fd, self._data)
 
     def _draw_title(self):
         self._context.set_source_rgb(0, 0, 1.)
@@ -207,5 +217,4 @@ class Camera:
         self._context.show_text(text)
 
     def __del__(self):
-        if self._device is not None:
-            self._device.close()
+        self._lib.v4l2_close(self._device_fd)

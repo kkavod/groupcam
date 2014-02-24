@@ -23,6 +23,7 @@ class TT4:
             result = cls._all_instances[config_name]
         else:
             result = TT4(config['servers'][config_name])
+            cls._all_instances[config_name] = result
         return result
 
     @classmethod

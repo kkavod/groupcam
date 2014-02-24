@@ -16,8 +16,7 @@ def poll_clients():
 
     global _clients
     if not _clients:
-        _clients += [DestinationClient()]
-#          _clients += [SourceClient(), DestinationClient()]
+        _clients += [SourceClient(), DestinationClient()]
     for client in _clients:
         client.poll()
 
@@ -148,7 +147,7 @@ class SourceClient(BaseClient):
 
     def on_user_video_frame(self, message):
         if message.first_param != self._user_id:
-            profile = self._tt4.get_user(self._user_id)
+            profile = self._tt4.get_user(message.first_param)
             nickname = str(profile.nickname, 'utf8')
             self._camera.process_user_frame(message.first_param,
                                             nickname,
