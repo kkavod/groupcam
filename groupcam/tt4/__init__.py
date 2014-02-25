@@ -127,6 +127,7 @@ class TT4:
 
         device_number = ctypes.c_uint32()
         device_number_ptr = ctypes.pointer(device_number)
+
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
         device_path = config['camera']['device']

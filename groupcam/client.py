@@ -162,17 +162,7 @@ class DestinationClient(BaseClient):
 
     def __init__(self):
         super().__init__()
-        self._broadcast_started = False
-
-#          self._tt4.start_broadcast()
-#          self._status_mode |= StatusMode.VIDEOTX
-#          self._tt4.change_status(self._status_mode)
-#          self._self._logger.info("Broadcast started")
-
-    def on_user_video_frame(self, message):
-        if not self._broadcast_started:
-            self._tt4.start_broadcast()
-            self._status_mode |= StatusMode.VIDEOTX
-            self._tt4.change_status(self._status_mode)
-            self._logger.info("Broadcast started")
-            self._broadcast_started = True
+        self._tt4.start_broadcast()
+        self._status_mode |= StatusMode.VIDEOTX
+        self._tt4.change_status(self._status_mode)
+        self._logger.info("Broadcast started")

@@ -1,5 +1,5 @@
 # Interval in ms
-POLL_INTERVAL = 200
+POLL_INTERVAL = 25
 
 WM_USER = 0
 
