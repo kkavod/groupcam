@@ -54,9 +54,14 @@ class TT4:
         if not result:
             fail_with_error("Unable to establish connection with the server")
 
+    def is_connected(self):
+        flags = self._library.TT_GetFlags(self._instance)
+        return flags & consts.ClientFlag.CLIENT_CONNECTION
+
     def get_message(self):
         message = structs.TTMessage()
-        wait_ms_ptr = ctypes.pointer(ctypes.c_int32(consts.POLL_INTERVAL))
+#          wait_ms_ptr = ctypes.pointer(ctypes.c_int32(consts.POLL_INTERVAL))
+        wait_ms_ptr = ctypes.pointer(ctypes.c_int32(-1))
         ret_code = self._library.TT_GetMessage(
             self._instance, ctypes.pointer(message), wait_ms_ptr)
         result = None if ret_code <= 0 else message

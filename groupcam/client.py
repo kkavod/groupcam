@@ -1,5 +1,7 @@
 from time import sleep
 
+from multiprocessing import Pool
+
 from groupcam.conf import config
 from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4
@@ -7,18 +9,16 @@ from groupcam.tt4.consts import StatusMode, ClientEvent
 from groupcam.camera import Camera
 
 
-_clients = []
-
-
-def poll_clients():
+def run_clients():
     """Module entry point.
     """
 
-    global _clients
-    if not _clients:
-        _clients += [SourceClient(), DestinationClient()]
-    for client in _clients:
-        client.poll()
+    pool = Pool(len(config['servers']))
+    pool.map(_run_client, [SourceClient, DestinationClient]),
+
+
+def _run_client(cls):
+    cls().run()
 
 
 COMPLETE_COMMANDS = {
@@ -40,10 +40,11 @@ class BaseClient:
         self._commands = {}
         self._tt4.connect()
 
-    def poll(self):
-        message = self._tt4.get_message()
-        if message is not None:
-            self._process_message(message)
+    def run(self):
+        while True:
+            message = self._tt4.get_message()
+            if message is not None:
+                self._process_message(message)
 
     def on_connection_success(self, message):
         command_id = self._tt4.login()
