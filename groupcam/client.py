@@ -14,7 +14,7 @@ def run_clients():
     """
 
     pool = Pool(len(config['servers']))
-    pool.map(_run_client, [SourceClient, DestinationClient]),
+    pool.map(_run_client, [SourceClient, DestinationClient])
 
 
 def _run_client(cls):
@@ -163,7 +163,13 @@ class DestinationClient(BaseClient):
 
     def __init__(self):
         super().__init__()
-        self._tt4.start_broadcast()
-        self._status_mode |= StatusMode.VIDEOTX
-        self._tt4.change_status(self._status_mode)
-        self._logger.info("Broadcast started")
+        self._broadcast_started = False
+
+    def on_user_video_frame(self, message):
+        # TODO: start broadcast in constructor after a delay
+        if not self._broadcast_started:
+            self._tt4.start_broadcast()
+            self._status_mode |= StatusMode.VIDEOTX
+            self._tt4.change_status(self._status_mode)
+            self._logger.info("Broadcast started")
+            self._broadcast_started = True
