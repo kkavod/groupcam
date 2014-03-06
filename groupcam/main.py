@@ -1,6 +1,6 @@
 from groupcam.core import logger
 from groupcam.core import initialize
-from groupcam.client import Client
+from groupcam.client import run_clients
 
 
 def main():
@@ -11,6 +11,6 @@ def main():
     initialize()
 
     # Processing
-    Client().run()
+    run_clients()
 
     logger.info("Finished.")

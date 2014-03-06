@@ -3,7 +3,7 @@ import cairo
 
 from datetime import datetime
 
-from groupcam.tt4 import tt4
+from groupcam.tt4 import TT4
 
 
 class User:
@@ -12,12 +12,13 @@ class User:
         self.nickname = nickname
         self.surface = None
         self.img_width = self.img_height = 0
-        self.display_rect = (0, 0, 1, 1)
+        self.display_rect = (0, 0, 0, 0)
         self.updated = datetime.now()
+        self._tt4 = TT4.get_instance('source')
         self._data = None
 
     def update(self):
-        video_format = tt4.get_user_video_format(self.user_id)
+        video_format = self._tt4.get_user_video_format(self.user_id)
         if not video_format:
             return
 
@@ -26,8 +27,8 @@ class User:
                 self.img_height != video_format.height):
             self._init_surface(video_format)
 
-        result = tt4.get_user_video_frame(self.user_id, self._data,
-                                          len(self._data) * 4, video_format)
+        result = self._tt4.get_user_video_frame(
+            self.user_id, self._data, len(self._data) * 4, video_format)
         if result:
             self.updated = datetime.now()
         return True
