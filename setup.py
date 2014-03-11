@@ -12,16 +12,23 @@ from distutils.command.build_py import build_py
 
 setup(
     name="groupcam",
-    version='0.01',
+    version='0.02',
     author="Konstantin Alexandrov",
     author_email="iwuvjhdva@gmail.com",
     description="",
     url="https://hg.socio2.net/groupcam/",
-    install_requires=[
-        'pycairo',
+    dependency_links=[
+        'git+https://github.com/iwuvjhdva/v4l2.git@master#egg=v4l2',
+        'git://git.cairographics.org/git/pycairo@master#egg=pycairo',
     ],
-    packages=['groupcam', 'groupcam.http'],
+    install_requires=[
+        'pyyaml',
+        'pycairo',
+        'v4l2',
+    ],
+    packages=['groupcam', 'groupcam.tt4'],
     package_data={
+        'groupcam': ['misc/*.*'],
     },
     entry_points={
         'console_scripts': [

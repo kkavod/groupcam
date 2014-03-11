@@ -1,4 +1,4 @@
-from time import sleep
+from datetime import datetime
 
 from multiprocessing import Pool
 
@@ -45,6 +45,9 @@ class BaseClient:
             message = self._tt4.get_message()
             if message is not None:
                 self._process_message(message)
+            else:
+                if not self._tt4.is_connected():
+                    self.on_connection_lost()
 
     def on_connection_success(self, message):
         command_id = self._tt4.login()
@@ -56,11 +59,9 @@ class BaseClient:
         self._tt4.disconnect()
         self._logger.error("Failed to connect to server")
 
-    def on_connection_lost(self, message):
-        self._tt4.disconnect()
+    def on_connection_lost(self, message=None):
         self._logger.error("Connection to server lost, reconnecting...")
-        sleep(1.)
-        self._tt4.connect()
+        self._tt4.reconnect()
 
     def on_command_myself_logged_in(self, message):
         self._user_id = message.first_param
@@ -140,6 +141,7 @@ class BaseClient:
 
 class SourceClient(BaseClient):
     _config_name = 'source'
+    _users = {}
 
     def __init__(self):
         super().__init__()
@@ -147,15 +149,32 @@ class SourceClient(BaseClient):
         self._camera = Camera()
 
     def on_user_video_frame(self, message):
-        if message.first_param != self._user_id:
-            profile = self._tt4.get_user(message.first_param)
+        user_id = message.first_param
+
+        if user_id != self._user_id:
+            profile = self._get_cached_profile(user_id)
             nickname = str(profile.nickname, 'utf8')
-            self._camera.process_user_frame(message.first_param,
+            self._camera.process_user_frame(user_id,
                                             nickname,
                                             message.second_param)
 
     def on_command_user_left(self, message):
         self._camera.remove_user(message.first_param)
+
+    def _get_cached_profile(self, user_id):
+        profile = None
+        if user_id in self._users:
+            delta = datetime.now() - self._users[user_id]['timestamp']
+            if delta.seconds <= 30:
+                profile = self._users[user_id]['profile']
+
+        if profile is None:
+            profile = self._tt4.get_user(user_id)
+            self._users[user_id] = dict(
+                timestamp=datetime.now(),
+                profile=profile,
+            )
+        return profile
 
 
 class DestinationClient(BaseClient):

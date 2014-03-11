@@ -1,5 +1,4 @@
-# Interval in ms
-POLL_INTERVAL = 25
+RECONNECT_INTERVAL = 5.
 
 WM_USER = 0
 

@@ -1,3 +1,5 @@
+from time import sleep
+
 import os
 
 import ctypes
@@ -60,7 +62,6 @@ class TT4:
 
     def get_message(self):
         message = structs.TTMessage()
-#          wait_ms_ptr = ctypes.pointer(ctypes.c_int32(consts.POLL_INTERVAL))
         wait_ms_ptr = ctypes.pointer(ctypes.c_int32(-1))
         ret_code = self._library.TT_GetMessage(
             self._instance, ctypes.pointer(message), wait_ms_ptr)
@@ -123,6 +124,11 @@ class TT4:
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
                                             structs.TRANSMIT_VIDEO, True)
+
+    def reconnect(self):
+        self.disconnect()
+        sleep(consts.RECONNECT_INTERVAL)
+        self.connect()
 
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
