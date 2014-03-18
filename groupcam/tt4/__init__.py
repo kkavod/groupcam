@@ -125,6 +125,9 @@ class TT4:
         self._library.TT_EnableTransmission(self._instance,
                                             structs.TRANSMIT_VIDEO, True)
 
+    def unsubscribe(self, user_id, subscriptions):
+        self._library.TT_DoUnsubscribe(self._instance, user_id, subscriptions)
+
     def reconnect(self):
         self.disconnect()
         sleep(consts.RECONNECT_INTERVAL)

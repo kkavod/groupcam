@@ -65,6 +65,7 @@ class BaseClient:
 
     def on_command_myself_logged_in(self, message):
         self._user_id = message.first_param
+        self._tt4.unsubscribe(self._user_id, 0x0010)
         self._logger.info("Logged in to server")
 
     def on_command_myself_logged_out(self, message):
