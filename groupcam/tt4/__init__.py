@@ -126,7 +126,8 @@ class TT4:
                                             structs.TRANSMIT_VIDEO, True)
 
     def unsubscribe(self, user_id, subscriptions):
-        self._library.TT_DoUnsubscribe(self._instance, user_id, subscriptions)
+        return self._library.TT_DoUnsubscribe(self._instance,
+                                              user_id, subscriptions)
 
     def reconnect(self):
         self.disconnect()

@@ -24,7 +24,7 @@ def _run_client(cls):
 COMPLETE_COMMANDS = {
     command: value
     for value, command in enumerate(
-        ['complete_login', 'complete_join_channel'])
+        ['complete_login', 'complete_join_channel', 'complete_unsubscribe'])
 }
 
 
@@ -65,8 +65,10 @@ class BaseClient:
 
     def on_command_myself_logged_in(self, message):
         self._user_id = message.first_param
-        self._tt4.unsubscribe(self._user_id, 0x0010)
         self._logger.info("Logged in to server")
+
+    def on_command_user_logged_in(self, message):
+        self._tt4.unsubscribe(message.first_param, 0x0008 | 0x0010 | 0x0020)
 
     def on_command_myself_logged_out(self, message):
         self._tt4.disconnect()
@@ -84,6 +86,8 @@ class BaseClient:
                 self._complete_login()
             elif command == COMPLETE_COMMANDS['complete_join_channel']:
                 self._logger.info("Joined the channel")
+            elif command == COMPLETE_COMMANDS['complete_unsubscribe']:
+                self._logger.info("Unsubscription complete")
 
     def on_command_error(self, message):
         self._logger.error("Error performing the command (error code {}"
@@ -112,6 +116,8 @@ class BaseClient:
             self.on_command_myself_logged_in(message)
         elif code == ClientEvent.WM_TEAMTALK_CMD_MYSELF_LOGGEDOUT:
             self.on_command_myself_logged_out(message)
+        elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LOGGEDIN:
+            self.on_command_user_logged_in(message)
         elif code == ClientEvent.WM_TEAMTALK_USER_VIDEOFRAME:
             self.on_user_video_frame(message)
         elif code == ClientEvent.WM_TEAMTALK_CMD_PROCESSING:
