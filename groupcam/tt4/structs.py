@@ -17,6 +17,26 @@ TT_STRLEN = 512
 #  for a VideoCaptureDevice.
 TT_CAPTUREFORMATS_MAX = 128
 
+# Using subscribtions can, however, change what the local client instance
+# is willing to accept from other users.
+Subscription = ctypes.c_uint
+(
+    SUBSCRIBE_NONE,
+    SUBSCRIBE_USER_MSG,
+    SUBSCRIBE_CHANNEL_MSG,
+    SUBSCRIBE_BROADCAST_MSG,
+    SUBSCRIBE_AUDIO,
+    SUBSCRIBE_VIDEO,
+    SUBSCRIBE_DESKTOP,
+    SUBSCRIBE_CUSTOM_MSG,
+    SUBSCRIBE_INTERCEPT_USER_MSG,
+    SUBSCRIBE_INTERCEPT_CHANNEL_MSG,
+    SUBSCRIBE_INTERCEPT_AUDIO,
+    SUBSCRIBE_INTERCEPT_VIDEO,
+    SUBSCRIBE_INTERCEPT_DESKTOP,
+    SUBSCRIBE_INTERCEPT_CUSTOM_MSG
+) = [0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020,
+     0x0040, 0x0100, 0x0200, 0x0800, 0x1000, 0x2000, 0x4000]
 
 # Enum specifying data transmission types
 TransmitType = ctypes.c_uint

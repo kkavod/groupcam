@@ -7,9 +7,8 @@ from groupcam.tt4 import TT4
 
 
 class User:
-    def __init__(self, user_id, nickname):
+    def __init__(self, user_id):
         self.user_id = user_id
-        self.nickname = nickname
         self.surface = None
         self.img_width = self.img_height = 0
         self.display_rect = (0, 0, 0, 0)

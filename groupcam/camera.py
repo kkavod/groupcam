@@ -1,5 +1,3 @@
-import re
-
 from datetime import datetime
 
 import ctypes
@@ -29,16 +27,13 @@ class Camera:
         self._init_surface()
         self._update()
 
-    def process_user_frame(self, user_id, nickname, frames_count):
-        match = self._nickname_regexp.match(nickname)
-
-        if match is not None:
-            if user_id in self._users:
-                user = self._users[user_id]
-            else:
-                user = User(user_id, nickname)
-                self._users[user_id] = user
-            user.update() and self._update()
+    def process_user_frame(self, user_id, frames_count):
+        if user_id in self._users:
+            user = self._users[user_id]
+        else:
+            user = User(user_id)
+            self._users[user_id] = user
+        user.update() and self._update()
 
     def remove_user(self, user_id):
         if user_id in self._users:
@@ -53,8 +48,6 @@ class Camera:
         return lib
 
     def _load_settings(self):
-        regexp_string = config['camera']['nickname_regexp']
-        self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
         self._width = config['camera']['width']
         self._height = config['camera']['height']
         self._title = config['camera']['title']
@@ -184,7 +177,7 @@ class Camera:
         left = self._width - horizontal_middle
         top = self._height - vertical_middle - self._padding
 
-        sort_key = lambda user: user.nickname
+        sort_key = lambda user: user.user_id
         users = sorted(self._users.values(), key=sort_key)
         for index, user in enumerate(users):
             x = left + (index % cols_number * user_width)

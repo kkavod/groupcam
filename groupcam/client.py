@@ -1,4 +1,4 @@
-from datetime import datetime
+import re
 
 from multiprocessing import Pool
 
@@ -6,6 +6,7 @@ from groupcam.conf import config
 from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4
 from groupcam.tt4.consts import StatusMode, ClientEvent
+from groupcam.tt4 import structs
 from groupcam.camera import Camera
 
 
@@ -30,6 +31,15 @@ COMPLETE_COMMANDS = {
 
 class BaseClient:
     _config_name = None
+    _subscription = (
+        structs.SUBSCRIBE_NONE |
+        structs.SUBSCRIBE_USER_MSG |
+        structs.SUBSCRIBE_CHANNEL_MSG |
+        structs.SUBSCRIBE_BROADCAST_MSG |
+        structs.SUBSCRIBE_AUDIO |
+        structs.SUBSCRIBE_VIDEO |
+        structs.SUBSCRIBE_DESKTOP
+    )
 
     def __init__(self):
         self._logger = get_child_logger(self._config_name)
@@ -68,7 +78,7 @@ class BaseClient:
         self._logger.info("Logged in to server")
 
     def on_command_user_logged_in(self, message):
-        self._tt4.unsubscribe(message.first_param, 0x0008 | 0x0010 | 0x0020)
+        self._tt4.unsubscribe(message.first_param, self._subscription)
 
     def on_command_myself_logged_out(self, message):
         self._tt4.disconnect()
@@ -85,9 +95,7 @@ class BaseClient:
             if command == COMPLETE_COMMANDS['complete_login']:
                 self._complete_login()
             elif command == COMPLETE_COMMANDS['complete_join_channel']:
-                self._logger.info("Joined the channel")
-            elif command == COMPLETE_COMMANDS['complete_unsubscribe']:
-                self._logger.info("Unsubscription complete")
+                self.on_complete_join_channel()
 
     def on_command_error(self, message):
         self._logger.error("Error performing the command (error code {}"
@@ -99,6 +107,9 @@ class BaseClient:
 
     def on_command_user_left(self, message):
         pass
+
+    def on_complete_join_channel(self):
+        self._logger.info("Joined the channel")
 
     def _process_message(self, message):
         code = message.code
@@ -148,54 +159,42 @@ class BaseClient:
 
 class SourceClient(BaseClient):
     _config_name = 'source'
-    _users = {}
 
     def __init__(self):
         super().__init__()
 
         self._camera = Camera()
+        regexp_string = config['camera']['nickname_regexp']
+        self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
 
-    def on_user_video_frame(self, message):
+    def on_command_user_logged_in(self, message):
+        subscription = self._subscription
+
         user_id = message.first_param
 
         if user_id != self._user_id:
-            profile = self._get_cached_profile(user_id)
+            profile = self._tt4.get_user(user_id)
             nickname = str(profile.nickname, 'utf8')
-            self._camera.process_user_frame(user_id,
-                                            nickname,
-                                            message.second_param)
+
+            match = self._nickname_regexp.match(nickname)
+            if match is not None:
+                subscription &= not structs.SUBSCRIBE_VIDEO
+
+        self._tt4.unsubscribe(message.first_param, subscription)
+
+    def on_user_video_frame(self, message):
+        self._camera.process_user_frame(message.first_param,
+                                        message.second_param)
 
     def on_command_user_left(self, message):
         self._camera.remove_user(message.first_param)
-
-    def _get_cached_profile(self, user_id):
-        profile = None
-        if user_id in self._users:
-            delta = datetime.now() - self._users[user_id]['timestamp']
-            if delta.seconds <= 30:
-                profile = self._users[user_id]['profile']
-
-        if profile is None:
-            profile = self._tt4.get_user(user_id)
-            self._users[user_id] = dict(
-                timestamp=datetime.now(),
-                profile=profile,
-            )
-        return profile
 
 
 class DestinationClient(BaseClient):
     _config_name = 'destination'
 
-    def __init__(self):
-        super().__init__()
-        self._broadcast_started = False
-
-    def on_user_video_frame(self, message):
-        # TODO: start broadcast in constructor after a delay
-        if not self._broadcast_started:
-            self._tt4.start_broadcast()
-            self._status_mode |= StatusMode.VIDEOTX
-            self._tt4.change_status(self._status_mode)
-            self._logger.info("Broadcast started")
-            self._broadcast_started = True
+    def on_complete_join_channel(self):
+        self._tt4.start_broadcast()
+        self._status_mode |= StatusMode.VIDEOTX
+        self._tt4.change_status(self._status_mode)
+        self._logger.info("Broadcast started")
