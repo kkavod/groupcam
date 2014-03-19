@@ -16,7 +16,7 @@ class User:
         self._tt4 = TT4.get_instance('source')
         self._data = None
 
-    def update(self):
+    def update(self, frames_count=1):
         video_format = self._tt4.get_user_video_format(self.user_id)
         if not video_format:
             return
@@ -26,8 +26,9 @@ class User:
                 self.img_height != video_format.height):
             self._init_surface(video_format)
 
-        result = self._tt4.get_user_video_frame(
-            self.user_id, self._data, len(self._data) * 4, video_format)
+        for index in range(frames_count):
+            result = self._tt4.get_user_video_frame(
+                self.user_id, self._data, len(self._data) * 4, video_format)
         if result:
             self.updated = datetime.now()
         return True

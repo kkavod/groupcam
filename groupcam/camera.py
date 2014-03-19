@@ -33,7 +33,7 @@ class Camera:
         else:
             user = User(user_id)
             self._users[user_id] = user
-        user.update() and self._update()
+        user.update(frames_count) and self._update()
 
     def remove_user(self, user_id):
         if user_id in self._users:
