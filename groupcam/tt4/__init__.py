@@ -1,5 +1,3 @@
-from time import sleep
-
 import os
 
 import ctypes
@@ -44,7 +42,7 @@ class TT4:
 
     def connect(self):
         flags = self._library.TT_GetFlags(self._instance)
-        if flags & consts.ClientFlag.CLIENT_CONNECTION:
+        if flags & consts.CLIENT_CONNECTION:
             return
 
         host = self._server_config['host']
@@ -58,7 +56,7 @@ class TT4:
 
     def is_connected(self):
         flags = self._library.TT_GetFlags(self._instance)
-        return flags & consts.ClientFlag.CLIENT_CONNECTION
+        return flags & consts.CLIENT_CONNECTION
 
     def get_message(self):
         message = structs.TTMessage()
@@ -128,11 +126,6 @@ class TT4:
     def unsubscribe(self, user_id, subscriptions):
         return self._library.TT_DoUnsubscribe(self._instance,
                                               user_id, subscriptions)
-
-    def reconnect(self):
-        self.disconnect()
-        sleep(consts.RECONNECT_INTERVAL)
-        self.connect()
 
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)

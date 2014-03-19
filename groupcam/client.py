@@ -1,11 +1,13 @@
 import re
 
+from time import sleep
+
 from multiprocessing import Pool
 
 from groupcam.conf import config
 from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4
-from groupcam.tt4.consts import StatusMode, ClientEvent
+from groupcam.tt4 import consts
 from groupcam.tt4 import structs
 from groupcam.camera import Camera
 
@@ -46,7 +48,7 @@ class BaseClient:
         self._server_config = config['servers'][self._config_name]
         self._tt4 = TT4.singleton(self._config_name)
         self._user_id = None
-        self._status_mode = StatusMode.AVAILABLE
+        self._status_mode = consts.STATUS_AVAILABLE
         self._commands = {}
         self._tt4.connect()
 
@@ -71,7 +73,9 @@ class BaseClient:
 
     def on_connection_lost(self, message=None):
         self._logger.error("Connection to server lost, reconnecting...")
-        self._tt4.reconnect()
+        self.disconnect()
+        sleep(5.)
+        self.connect()
 
     def on_command_myself_logged_in(self, message):
         self._user_id = message.first_param
@@ -117,27 +121,27 @@ class BaseClient:
         if options.debug:
             self._logger.debug("Got message with code {}".format(code))
 
-        if code == ClientEvent.WM_TEAMTALK_CON_SUCCESS:
+        if code == consts.WM_TEAMTALK_CON_SUCCESS:
             self.on_connection_success(message)
-        elif code == ClientEvent.WM_TEAMTALK_CON_FAILED:
+        elif code == consts.WM_TEAMTALK_CON_FAILED:
             self.on_connection_failed(message)
-        elif code == ClientEvent.WM_TEAMTALK_CON_LOST:
+        elif code == consts.WM_TEAMTALK_CON_LOST:
             self.on_connection_lost(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_MYSELF_LOGGEDIN:
+        elif code == consts.WM_TEAMTALK_CMD_MYSELF_LOGGEDIN:
             self.on_command_myself_logged_in(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_MYSELF_LOGGEDOUT:
+        elif code == consts.WM_TEAMTALK_CMD_MYSELF_LOGGEDOUT:
             self.on_command_myself_logged_out(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LOGGEDIN:
+        elif code == consts.WM_TEAMTALK_CMD_USER_LOGGEDIN:
             self.on_command_user_logged_in(message)
-        elif code == ClientEvent.WM_TEAMTALK_USER_VIDEOFRAME:
+        elif code == consts.WM_TEAMTALK_USER_VIDEOFRAME:
             self.on_user_video_frame(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_PROCESSING:
+        elif code == consts.WM_TEAMTALK_CMD_PROCESSING:
             self.on_command_processing(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_ERROR:
+        elif code == consts.WM_TEAMTALK_CMD_ERROR:
             self.on_command_error(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LOGGEDOUT:
+        elif code == consts.WM_TEAMTALK_CMD_USER_LOGGEDOUT:
             self.on_command_user_logged_out(message)
-        elif code == ClientEvent.WM_TEAMTALK_CMD_USER_LEFT:
+        elif code == consts.WM_TEAMTALK_CMD_USER_LEFT:
             self.on_command_user_left(message)
         else:
             self._logger.debug("Message with code {} is unknown".format(code))
@@ -168,19 +172,13 @@ class SourceClient(BaseClient):
         self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
 
     def on_command_user_logged_in(self, message):
+        user_id = message.first_param
         subscription = self._subscription
 
-        user_id = message.first_param
+        if self._user_match(user_id):
+            subscription &= not structs.SUBSCRIBE_VIDEO
 
-        if user_id != self._user_id:
-            profile = self._tt4.get_user(user_id)
-            nickname = str(profile.nickname, 'utf8')
-
-            match = self._nickname_regexp.match(nickname)
-            if match is not None:
-                subscription &= not structs.SUBSCRIBE_VIDEO
-
-        self._tt4.unsubscribe(message.first_param, subscription)
+        self._tt4.unsubscribe(user_id, subscription)
 
     def on_user_video_frame(self, message):
         self._camera.process_user_frame(message.first_param,
@@ -189,12 +187,21 @@ class SourceClient(BaseClient):
     def on_command_user_left(self, message):
         self._camera.remove_user(message.first_param)
 
+    def _user_match(self, user_id):
+        if user_id == self._user_id:
+            result = False
+        else:
+            profile = self._tt4.get_user(user_id)
+            nickname = str(profile.nickname, 'utf8')
+            result = bool(self._nickname_regexp.match(nickname))
+        return result
+
 
 class DestinationClient(BaseClient):
     _config_name = 'destination'
 
     def on_complete_join_channel(self):
         self._tt4.start_broadcast()
-        self._status_mode |= StatusMode.VIDEOTX
+        self._status_mode |= consts.STATUS_VIDEOTX
         self._tt4.change_status(self._status_mode)
         self._logger.info("Broadcast started")
