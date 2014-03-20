@@ -121,7 +121,7 @@ class TT4:
         device_id = self._find_device()
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
-                                            structs.TRANSMIT_VIDEO, True)
+                                            consts.TRANSMIT_VIDEO, True)
 
     def unsubscribe(self, user_id, subscriptions):
         return self._library.TT_DoUnsubscribe(self._instance,
@@ -160,7 +160,7 @@ class TT4:
         theora = structs.TheoraCodec(0, config['camera']['quality'])
 
         video_codec = structs.VideoCodec(
-            structs.THEORA_CODEC,
+            consts.THEORA_CODEC,
             structs.VideoCodec._u(theora)
         )
 
@@ -169,7 +169,7 @@ class TT4:
             config['camera']['height'],
             config['camera']['fps'],
             1,
-            structs.FOURCC_RGB32
+            consts.FOURCC_RGB32
         )
 
         ret_code = self._library.TT_InitVideoCaptureDevice(

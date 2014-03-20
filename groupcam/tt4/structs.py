@@ -1,72 +1,7 @@
 import ctypes
 
 
-# The length of a string (characters, not bytes) which is used to
-# extract information from this DLL.
-#
-# If a string is passed to the client instance is longer than
-# TT_STRLEN it will be truncated.
-#
-# On Windows the client instance converts unicode characters to
-# UTF-8 before transmission, so be aware of non-ASCII characters
-# if communicating with the TeamTalk server from another
-# applications than the TeamTalk client.
-TT_STRLEN = 512
-
-#  The maximum number of video formats which will be queried
-#  for a VideoCaptureDevice.
-TT_CAPTUREFORMATS_MAX = 128
-
-# Using subscribtions can, however, change what the local client instance
-# is willing to accept from other users.
-Subscription = ctypes.c_uint
-(
-    SUBSCRIBE_NONE,
-    SUBSCRIBE_USER_MSG,
-    SUBSCRIBE_CHANNEL_MSG,
-    SUBSCRIBE_BROADCAST_MSG,
-    SUBSCRIBE_AUDIO,
-    SUBSCRIBE_VIDEO,
-    SUBSCRIBE_DESKTOP,
-    SUBSCRIBE_CUSTOM_MSG,
-    SUBSCRIBE_INTERCEPT_USER_MSG,
-    SUBSCRIBE_INTERCEPT_CHANNEL_MSG,
-    SUBSCRIBE_INTERCEPT_AUDIO,
-    SUBSCRIBE_INTERCEPT_VIDEO,
-    SUBSCRIBE_INTERCEPT_DESKTOP,
-    SUBSCRIBE_INTERCEPT_CUSTOM_MSG
-) = [0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020,
-     0x0040, 0x0100, 0x0200, 0x0800, 0x1000, 0x2000, 0x4000]
-
-# Enum specifying data transmission types
-TransmitType = ctypes.c_uint
-(
-    TRANSMIT_NONE,
-    TRANSMIT_AUDIO,
-    TRANSMIT_VIDEO,
-) = list(range(3))
-
-
-# The codecs supported.
-Codec = ctypes.c_uint
-(
-    NO_CODEC,
-    SPEEX_CODEC,
-    CELT_0_5_2_OBSOLETE_CODEC,
-    THEORA_CODEC,
-    SPEEX_VBR_CODEC,
-    CELT_CODEC,
-    CELT_VBR_CODEC,
-) = list(range(7))
-
-# The picture format used by a capture device.
-FourCC = ctypes.c_uint
-(
-    FOURCC_NONE,
-    FOURCC_I420,
-    FOURCC_YUY2,
-    FOURCC_RGB32,
-) = [0, 100, 101, 102]
+from groupcam.tt4 import consts
 
 
 class TheoraCodec(ctypes.Structure):
@@ -83,7 +18,7 @@ class VideoCodec(ctypes.Structure):
         ]
 
     _fields_ = [
-        ('codec', Codec),
+        ('codec', consts.Codec),
         ('param', _u),
     ]
 
@@ -94,16 +29,16 @@ class CaptureFormat(ctypes.Structure):
         ('height', ctypes.c_int32),
         ('fps_numerator', ctypes.c_int32),
         ('fps_denominator', ctypes.c_int32),
-        ('four_cc', FourCC),
+        ('four_cc', consts.FourCC),
     ]
 
 
 class VideoCaptureDevice(ctypes.Structure):
     _fields_ = [
-        ('device_id', ctypes.c_char * TT_STRLEN),
-        ('device_name', ctypes.c_char * TT_STRLEN),
-        ('capture_api', ctypes.c_char * TT_STRLEN),
-        ('capture_formats', CaptureFormat * TT_CAPTUREFORMATS_MAX),
+        ('device_id', ctypes.c_char * consts.TT_STRLEN),
+        ('device_name', ctypes.c_char * consts.TT_STRLEN),
+        ('capture_api', ctypes.c_char * consts.TT_STRLEN),
+        ('capture_formats', CaptureFormat * consts.TT_CAPTUREFORMATS_MAX),
         ('capture_formats_count', ctypes.c_int32),
     ]
 
@@ -128,19 +63,19 @@ class TTMessage(ctypes.Structure):
 class User(ctypes.Structure):
     _fields_ = [
         ('id', ctypes.c_int32),
-        ('nickname', ctypes.c_char * TT_STRLEN),
-        ('username', ctypes.c_char * TT_STRLEN),
+        ('nickname', ctypes.c_char * consts.TT_STRLEN),
+        ('username', ctypes.c_char * consts.TT_STRLEN),
         ('status_mode', ctypes.c_int32),
-        ('status_message', ctypes.c_char * TT_STRLEN),
+        ('status_message', ctypes.c_char * consts.TT_STRLEN),
         ('channel_id', ctypes.c_int32),
-        ('ip_address', ctypes.c_char * TT_STRLEN),
-        ('version', ctypes.c_char * TT_STRLEN),
+        ('ip_address', ctypes.c_char * consts.TT_STRLEN),
+        ('version', ctypes.c_char * consts.TT_STRLEN),
         ('user_type', ctypes.c_uint32),
         ('user_state', ctypes.c_uint32),
         ('local_subscriptions', ctypes.c_uint32),
         ('peer_subscriptions', ctypes.c_uint32),
         ('user_data', ctypes.c_int32),
-        ('audio_folder', ctypes.c_char * TT_STRLEN),
+        ('audio_folder', ctypes.c_char * consts.TT_STRLEN),
         ('audio_file_format', ctypes.c_uint32),
-        ('audio_file_name', ctypes.c_char * TT_STRLEN),
+        ('audio_file_name', ctypes.c_char * consts.TT_STRLEN),
     ]

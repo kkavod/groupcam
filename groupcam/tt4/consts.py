@@ -1,6 +1,77 @@
 import ctypes
 
 
+# The length of a string (characters, not bytes) which is used to
+# extract information from this DLL.
+#
+# If a string is passed to the client instance is longer than
+# TT_STRLEN it will be truncated.
+#
+# On Windows the client instance converts unicode characters to
+# UTF-8 before transmission, so be aware of non-ASCII characters
+# if communicating with the TeamTalk server from another
+# applications than the TeamTalk client.
+TT_STRLEN = 512
+
+
+#  The maximum number of video formats which will be queried
+#  for a VideoCaptureDevice.
+TT_CAPTUREFORMATS_MAX = 128
+
+
+# Using subscribtions can, however, change what the local client instance
+# is willing to accept from other users.
+Subscription = ctypes.c_uint
+(
+    SUBSCRIBE_NONE,
+    SUBSCRIBE_USER_MSG,
+    SUBSCRIBE_CHANNEL_MSG,
+    SUBSCRIBE_BROADCAST_MSG,
+    SUBSCRIBE_AUDIO,
+    SUBSCRIBE_VIDEO,
+    SUBSCRIBE_DESKTOP,
+    SUBSCRIBE_CUSTOM_MSG,
+    SUBSCRIBE_INTERCEPT_USER_MSG,
+    SUBSCRIBE_INTERCEPT_CHANNEL_MSG,
+    SUBSCRIBE_INTERCEPT_AUDIO,
+    SUBSCRIBE_INTERCEPT_VIDEO,
+    SUBSCRIBE_INTERCEPT_DESKTOP,
+    SUBSCRIBE_INTERCEPT_CUSTOM_MSG
+) = [0x0000, 0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020,
+     0x0040, 0x0100, 0x0200, 0x0800, 0x1000, 0x2000, 0x4000]
+
+# Enum specifying data transmission types
+TransmitType = ctypes.c_uint
+(
+    TRANSMIT_NONE,
+    TRANSMIT_AUDIO,
+    TRANSMIT_VIDEO,
+) = list(range(3))
+
+
+# The codecs supported.
+Codec = ctypes.c_uint
+(
+    NO_CODEC,
+    SPEEX_CODEC,
+    CELT_0_5_2_OBSOLETE_CODEC,
+    THEORA_CODEC,
+    SPEEX_VBR_CODEC,
+    CELT_CODEC,
+    CELT_VBR_CODEC,
+) = list(range(7))
+
+# The picture format used by a capture device.
+FourCC = ctypes.c_uint
+(
+    FOURCC_NONE,
+    FOURCC_I420,
+    FOURCC_YUY2,
+    FOURCC_RGB32,
+) = [0, 100, 101, 102]
+
+
+# For TT_DoChangeStatus
 StatusMode = ctypes.c_uint
 (
     STATUS_AVAILABLE,
@@ -50,8 +121,12 @@ ClientFlag = ctypes.c_uint
      0x00100000, 0x00200000, 0x00300000, 0x00400000, 0x00800000]
 
 
+# Used as an initial value for #ClientEvent.
 WM_USER = 0
 
+
+# TeamTalk client event messages. On Windows these messages are posted
+# to the HWND which was provided to #TT_InitTeamTalk
 ClientEvent = ctypes.c_uint
 (
     WM_TEAMTALK_CON_SUCCESS,

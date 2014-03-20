@@ -8,7 +8,6 @@ from groupcam.conf import config
 from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4
 from groupcam.tt4 import consts
-from groupcam.tt4 import structs
 from groupcam.camera import Camera
 
 
@@ -34,13 +33,13 @@ COMPLETE_COMMANDS = {
 class BaseClient:
     _config_name = None
     _subscription = (
-        structs.SUBSCRIBE_NONE |
-        structs.SUBSCRIBE_USER_MSG |
-        structs.SUBSCRIBE_CHANNEL_MSG |
-        structs.SUBSCRIBE_BROADCAST_MSG |
-        structs.SUBSCRIBE_AUDIO |
-        structs.SUBSCRIBE_VIDEO |
-        structs.SUBSCRIBE_DESKTOP
+        consts.SUBSCRIBE_NONE |
+        consts.SUBSCRIBE_USER_MSG |
+        consts.SUBSCRIBE_CHANNEL_MSG |
+        consts.SUBSCRIBE_BROADCAST_MSG |
+        consts.SUBSCRIBE_AUDIO |
+        consts.SUBSCRIBE_VIDEO |
+        consts.SUBSCRIBE_DESKTOP
     )
 
     def __init__(self):
@@ -176,7 +175,7 @@ class SourceClient(BaseClient):
         subscription = self._subscription
 
         if self._user_match(user_id):
-            subscription &= not structs.SUBSCRIBE_VIDEO
+            subscription &= not consts.SUBSCRIBE_VIDEO
 
         self._tt4.unsubscribe(user_id, subscription)
 

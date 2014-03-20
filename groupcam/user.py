@@ -26,8 +26,9 @@ class User:
                 self.img_height != video_format.height):
             self._init_surface(video_format)
 
+        result = False
         for index in range(frames_count):
-            result = self._tt4.get_user_video_frame(
+            result |= self._tt4.get_user_video_frame(
                 self.user_id, self._data, len(self._data) * 4, video_format)
         if result:
             self.updated = datetime.now()
