@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 try:
     from setuptools import setup
     using_setuptools = True
@@ -12,7 +10,7 @@ from distutils.command.build_py import build_py
 
 setup(
     name="groupcam",
-    version='0.02',
+    version='0.1',
     author="Konstantin Alexandrov",
     author_email="iwuvjhdva@gmail.com",
     description="",

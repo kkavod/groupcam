@@ -7,8 +7,8 @@ import argparse
 import logging
 
 
-__description__ = ""
-__version__ = "0.01"
+__description__ = "Unites individual cameras into one groupcam"
+__version__ = "0.1"
 
 
 __all__ = ['options', 'logger', 'initialize', 'get_child_logger',
