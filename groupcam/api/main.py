@@ -1,3 +1,5 @@
+import motor
+
 import tornado.ioloop
 import tornado.web
 
@@ -6,7 +8,8 @@ from groupcam.conf import config
 from groupcam.api.urls import urls
 
 
-application = tornado.web.Application(urls)
+db = motor.MotorClient().open_sync().test
+application = tornado.web.Application(urls, db=db)
 
 
 def run_http_server():

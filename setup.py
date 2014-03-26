@@ -24,6 +24,7 @@ setup(
         'pycairo',
         'v4l2',
         'tornado==3.2',
+        'motor==0.1.2',
     ],
     packages=['groupcam', 'groupcam.tt4', 'groupcam.api'],
     package_data={
