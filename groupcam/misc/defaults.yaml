@@ -36,3 +36,6 @@ servers:
         channel_password:
         user_name:
         user_password:
+
+http:
+    port_base: 5000

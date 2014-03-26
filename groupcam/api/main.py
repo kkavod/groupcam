@@ -1,19 +1,15 @@
 import tornado.ioloop
 import tornado.web
 
-from groupcam.conf import conf
+from groupcam.core import logger
+from groupcam.conf import config
+from groupcam.api.urls import urls
 
 
-class CamerasHandler(tornado.web.RequestHandler):
-    def post(self):
-        pass
+application = tornado.web.Application(urls)
 
 
-application = tornado.web.Application([
-    (r'', CamerasHandler),
-])
-
-
-if __name__ == "__main__":
-    application.listen(5000)
-    tornado.ioloop.instance().start()
+def run_http_server():
+    application.listen(config['http']['port_base'])
+    logger.info("Launching HTTP server")
+    tornado.ioloop.IOLoop.instance().start()

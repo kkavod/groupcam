@@ -8,12 +8,12 @@ from groupcam.tt4.client import BaseClient
 from groupcam.camera import Camera
 
 
-def run_clients():
+def run_clients_async():
     """Module entry point.
     """
 
     pool = Pool(len(config['servers']))
-    pool.map(_run_client, [SourceClient, DestinationClient])
+    pool.map_async(_run_client, [SourceClient, DestinationClient])
 
 
 def _run_client(cls):
