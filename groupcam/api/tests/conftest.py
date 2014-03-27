@@ -86,7 +86,12 @@ class TestingClient(object):
         while True:
             self._running = True
             self.io_loop.start()
-            if self._failure is not None or condition is None or condition():
+            break_condition = (
+                self._failure is not None or
+                condition is None or
+                condition()
+            )
+            if break_condition:
                 break
 
     def _remove_timeout(self):
