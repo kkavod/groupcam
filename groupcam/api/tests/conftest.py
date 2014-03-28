@@ -1,5 +1,4 @@
-"""
-The tornado.testing Async stuff packaged as fixtures for use with py.test
+"""Tornado-specific py.test fixtures.
 """
 
 import json
@@ -8,16 +7,21 @@ import socket
 
 import pytest
 
+import pymongo
+
+import tornado.web
 from tornado import netutil
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.testing import AsyncHTTPClient
 from tornado.util import raise_exc_info
 
-from groupcam.api.main import application
+from groupcam.conf import config
+from groupcam.core import initialize
+from groupcam.api.urls import urls
 
 
-class TimeoutException(Exception):
+class _TimeoutException(Exception):
     pass
 
 
@@ -75,8 +79,8 @@ class TestingClient(object):
         def _timeout_func():
             message = "Operation timed out after {} seconds".format(timeout)
             try:
-                raise TimeoutException(message)
-            except TimeoutException as e:
+                raise _TimeoutException(message)
+            except _TimeoutException as e:
                 self._failure = e.__traceback__
             self.stop()
         timestamp = self.io_loop.time() + timeout
@@ -106,6 +110,17 @@ class TestingClient(object):
             raise_exc_info(failure)
 
 
+application = None
+
+
+def _drop_testing_database():
+    db = application.settings['db']
+    collections = db.collection_names()
+    [db[collection].drop()
+     for collection in collections
+     if collection != 'system.indexes']
+
+
 @pytest.fixture(scope='session')
 def app(request):
     """Application instance.
@@ -114,17 +129,35 @@ def app(request):
 
 
 @pytest.fixture(scope='session')
+def db(request):
+    """DB instance.
+    """
+    return application.settings['db']
+
+
+@pytest.fixture(scope='session')
 def http_server(request, app):
     """HTTP server instance.
     """
+    global application
+
+    # TODO: refactor, use TestApplication class
+    initialize()
+    nosql = pymongo.MongoClient()
+    db = nosql[config['database']['name']]
+    application = tornado.web.Application(urls, nosql=nosql, db=db)
+
     socks = netutil.bind_sockets(None, 'localhost', family=socket.AF_INET)
     server = HTTPServer(application, io_loop=IOLoop.instance())
     server.add_sockets(socks)
     return server
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='module')
 def client(request, app, http_server):
     """Testing client instance.
     """
-    return TestingClient(http_server, AsyncHTTPClient())
+    result = TestingClient(http_server, AsyncHTTPClient())
+    _drop_testing_database()
+    request.addfinalizer(_drop_testing_database)
+    return result

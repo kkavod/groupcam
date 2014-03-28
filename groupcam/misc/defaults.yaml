@@ -1,5 +1,15 @@
 # Groupcam config defaults
 
+database:
+    uri: 
+    name: groupcam
+    testing_name: groupcam_test
+
+http:
+    #host: localhost
+    port_base: 5000
+    #workers: 4
+
 camera:
     title: Groupcam Demo
     title_padding: 10
@@ -36,6 +46,3 @@ servers:
         channel_password:
         user_name:
         user_password:
-
-http:
-    port_base: 5000
