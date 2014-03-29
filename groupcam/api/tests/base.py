@@ -18,13 +18,12 @@ class TestApplication(Application):
         self.db = motor_client[config['database']['testing_name']]
 
 
-class BaseTestCase:
+class BaseTestCase(AsyncHTTPTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, request, application, http_server):
         self.application = application
         self.http_server = http_server
         self.http_client = AsyncHTTPClient()
-        self._monkey_patch()
         self._init_database()
         self._drop_database()
 
@@ -35,6 +34,9 @@ class BaseTestCase:
         self._alter_response_with_json(response)
         return response
 
+    def get_app(self):
+        return self.application
+
     def get_url(self, path):
         """Constructs URL from path.
         """
@@ -42,14 +44,6 @@ class BaseTestCase:
         _, port = sock.getsockname()
         url = 'http://localhost:{}{}'.format(port, path)
         return url
-
-    def _monkey_patch(self):
-        self.io_loop = IOLoop.instance()
-        for attr in ['stopped', 'running', 'failure', 'stop_args', 'timeout']:
-            setattr(self, '_AsyncTestCase__' + attr, None)
-        self._AsyncTestCase__rethrow = lambda *args, **kwargs: AsyncHTTPTestCase._AsyncTestCase__rethrow(self, *args, **kwargs)
-        self.stop = lambda *args, **kwargs: AsyncHTTPTestCase.stop(self, *args, **kwargs)
-        self.wait = lambda *args, **kwargs: AsyncHTTPTestCase.wait(self, *args, **kwargs)
 
     def _init_database(self):
         mongo_client = pymongo.MongoClient()
