@@ -47,8 +47,9 @@ class BaseTestCase:
         self.io_loop = IOLoop.instance()
         for attr in ['stopped', 'running', 'failure', 'stop_args', 'timeout']:
             setattr(self, '_AsyncTestCase__' + attr, None)
-        self.stop = lambda: AsyncHTTPTestCase.stop(self)
-        self.wait = lambda: AsyncHTTPTestCase.wait(self)
+        self._AsyncTestCase__rethrow = lambda *args, **kwargs: AsyncHTTPTestCase._AsyncTestCase__rethrow(self, *args, **kwargs)
+        self.stop = lambda *args, **kwargs: AsyncHTTPTestCase.stop(self, *args, **kwargs)
+        self.wait = lambda *args, **kwargs: AsyncHTTPTestCase.wait(self, *args, **kwargs)
 
     def _init_database(self):
         mongo_client = pymongo.MongoClient()
