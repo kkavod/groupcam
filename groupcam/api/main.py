@@ -8,11 +8,17 @@ from groupcam.conf import config
 from groupcam.api.urls import urls
 
 
-def run_http_server():
-    nosql = motor.MotorClient(config['database']['uri']).open_sync()
-    db = nosql[config['database']['name']]
-    application = tornado.web.Application(urls, nosql=nosql, db=db)
+class Application(tornado.web.Application):
+    def __init__(self):
+        super().__init__(urls)
 
+    def _init_database(self):
+        motor_client = motor.MotorClient(config['database']['uri']).open_sync()
+        self.db = motor_client[config['database']['name']]
+
+
+def run_http_server():
+    application = Application()
     application.listen(config['http']['port_base'])
     logger.info("Launching HTTP server")
     tornado.ioloop.IOLoop.instance().start()

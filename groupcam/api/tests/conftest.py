@@ -3,22 +3,16 @@
 
 import json
 
-import socket
-
 import pytest
 
-import pymongo
-
-import tornado.web
-from tornado import netutil
+from tornado.testing import bind_unused_port
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 from tornado.testing import AsyncHTTPClient
 from tornado.util import raise_exc_info
 
-from groupcam.conf import config
+from groupcam.api.tests.base import TestApplication
 from groupcam.core import initialize
-from groupcam.api.urls import urls
 
 
 class _TimeoutException(Exception):
@@ -110,54 +104,26 @@ class TestingClient(object):
             raise_exc_info(failure)
 
 
-application = None
-
-
-def _drop_testing_database():
-    db = application.settings['db']
-    collections = db.collection_names()
-    [db[collection].drop()
-     for collection in collections
-     if collection != 'system.indexes']
-
-
-@pytest.fixture(scope='session')
-def app(request):
-    """Application instance.
-    """
-    return application
-
-
-@pytest.fixture(scope='session')
-def db(request):
-    """DB instance.
-    """
-    return application.settings['db']
-
-
-@pytest.fixture(scope='session')
-def http_server(request, app):
-    """HTTP server instance.
-    """
-    global application
-
-    # TODO: refactor, use TestApplication class
-    initialize()
-    nosql = pymongo.MongoClient()
-    db = nosql[config['database']['name']]
-    application = tornado.web.Application(urls, nosql=nosql, db=db)
-
-    socks = netutil.bind_sockets(None, 'localhost', family=socket.AF_INET)
-    server = HTTPServer(application, io_loop=IOLoop.instance())
-    server.add_sockets(socks)
-    return server
-
-
 @pytest.fixture(scope='module')
 def client(request, app, http_server):
     """Testing client instance.
     """
     result = TestingClient(http_server, AsyncHTTPClient())
-    _drop_testing_database()
-    request.addfinalizer(_drop_testing_database)
     return result
+
+
+@pytest.fixture(scope='session')
+def application(request):
+    return TestApplication()
+
+
+@pytest.fixture(scope='session')
+def http_server(request, application):
+    """HTTP server instance.
+    """
+
+    initialize()
+    sock, port = bind_unused_port()
+    server = HTTPServer(application, io_loop=IOLoop.instance())
+    server.add_sockets([sock])
+    return server
