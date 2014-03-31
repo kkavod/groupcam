@@ -45,7 +45,8 @@ class BaseTestCase(AsyncHTTPTestCase):
          if collection != 'system.indexes']
 
     def _alter_response_with_json(self, response):
-        if 'application/json' in response.headers['Content-Type']:
+        content_type = response.headers.get('Content-Type', '')
+        if 'application/json' in content_type:
             response.json = json.loads(str(response.body, 'utf8'))
         else:
             response.json = {}
