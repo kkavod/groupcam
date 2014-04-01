@@ -11,6 +11,7 @@ from groupcam.api.urls import urls
 class Application(tornado.web.Application):
     def __init__(self):
         super().__init__(urls)
+        self._init_database()
 
     def _init_database(self):
         motor_client = motor.MotorClient(config['database']['uri']).open_sync()
