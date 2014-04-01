@@ -12,9 +12,13 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class CamerasHandler(BaseHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.engine
     def get(self):
-        response = {}
-        self.write(response)
+        cursor = self.db.cameras.find()
+        cameras = yield motor.Op(cursor.to_list)
+        result = dict(cameras=cameras, ok=True)
+        self.finish(result)
 
     @tornado.web.asynchronous
     @tornado.gen.engine
