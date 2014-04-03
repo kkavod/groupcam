@@ -4,6 +4,8 @@ import tornado.escape
 import tornado.web
 import tornado.gen
 
+from groupcam.client import manager
+
 
 class BaseHandler(tornado.web.RequestHandler):
     @property
@@ -24,7 +26,6 @@ class CamerasHandler(BaseHandler):
     @tornado.gen.engine
     def post(self):
         camera = tornado.escape.json_decode(self.request.body)
-        yield motor.Op(self.db.cameras.insert, camera)
-        self.clear()
+        manager.add(camera)
         self.set_status(201)
         self.finish({'ok': True})

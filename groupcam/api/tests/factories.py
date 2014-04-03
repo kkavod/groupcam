@@ -26,5 +26,6 @@ class CameraFactory(Factory):
     template = {
         'id': "camera-{counter}",
         'title': "Title {counter}",
-        'nickname_regexp': 'some.*regexp',
+        'nickname': "Nickname {counter}",
+        'regexp': 'some.*regexp',
     }

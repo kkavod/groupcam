@@ -26,7 +26,7 @@ class BaseClient:
 
     def __init__(self):
         self._logger = get_child_logger(self._config_name)
-        self._server_config = config['servers'][self._config_name]
+        self._server_config = config['server'][self._config_name]
         self._tt4 = TT4.singleton(self._config_name)
         self._user_id = None
         self._status_mode = consts.STATUS_AVAILABLE

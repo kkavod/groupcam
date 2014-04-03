@@ -10,7 +10,7 @@ from distutils.command.build_py import build_py
 
 setup(
     name="groupcam",
-    version='0.1',
+    version='0.5',
     author="Konstantin Alexandrov",
     author_email="iwuvjhdva@gmail.com",
     description="",
@@ -23,8 +23,9 @@ setup(
         'pyyaml',
         'pycairo',
         'v4l2',
-        'tornado==3.2',
+        'colander==0.9.9',
         'motor==0.1.2',
+        'tornado==3.2',
         'pytest==2.5.2',
     ],
     packages=['groupcam', 'groupcam.tt4', 'groupcam.api'],

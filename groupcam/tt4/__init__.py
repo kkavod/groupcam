@@ -1,4 +1,5 @@
 import os
+import platform
 
 import ctypes
 
@@ -22,7 +23,7 @@ class TT4:
         if config_name in cls._all_instances:
             result = cls._all_instances[config_name]
         else:
-            result = TT4(config['servers'][config_name])
+            result = TT4(config['server'][config_name])
             cls._all_instances[config_name] = result
         return result
 
@@ -37,8 +38,9 @@ class TT4:
 
     def _get_library(self):
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        library_path = os.path.join(base_path, 'misc/libTeamTalk4.so')
-        return ctypes.cdll.LoadLibrary(library_path)
+        arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+        library_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+        return ctypes.cdll.LoadLibrary(os.path.join(base_path, library_path))
 
     def connect(self):
         flags = self._library.TT_GetFlags(self._instance)

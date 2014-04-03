@@ -1,5 +1,5 @@
 from groupcam.core import initialize
-from groupcam.client import run_clients_async
+from groupcam.client import manager
 from groupcam.api.main import run_http_server
 
 
@@ -10,8 +10,8 @@ def main():
     # Initializing the core
     initialize()
 
-    # Processing
-    run_clients_async()
+    # Clients
+    manager.run_async()
 
     # RESTful API
     run_http_server()

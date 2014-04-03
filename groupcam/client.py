@@ -2,22 +2,36 @@ import re
 
 from multiprocessing import Pool
 
+import motor
+
 from groupcam.conf import config
 from groupcam.tt4 import consts
 from groupcam.tt4.client import BaseClient
 from groupcam.camera import Camera
 
 
-def run_clients_async():
-    """Module entry point.
-    """
+class ClientManager:
+    _clients = {}
 
-    pool = Pool(len(config['servers']))
-    pool.map_async(_run_client, [SourceClient, DestinationClient])
+    def run_async(self):
+        def _run(cls):
+            cls().run()
 
+        pool = Pool(len(config['server']))
+        pool.map_async(_run, [SourceClient, DestinationClient])
 
-def _run_client(cls):
-    cls().run()
+    def add(self, camera):
+        camera['device'] = self._find_free_device()
+        yield motor.Op(self.db.cameras.insert, camera)
+
+    def update(self, camera):
+        pass
+
+    def remove(self, id):
+        pass
+
+    def _find_free_device(self):
+        pass
 
 
 class SourceClient(BaseClient):
@@ -64,3 +78,6 @@ class DestinationClient(BaseClient):
         self._status_mode |= consts.STATUS_VIDEOTX
         self._tt4.change_status(self._status_mode)
         self._logger.info("Broadcast started")
+
+
+manager = ClientManager()
