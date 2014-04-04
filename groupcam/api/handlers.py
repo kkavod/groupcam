@@ -4,20 +4,19 @@ import tornado.escape
 import tornado.web
 import tornado.gen
 
+from groupcam.db import db
 from groupcam.client import manager
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    @property
-    def db(self):
-        return self.application.db
+    pass
 
 
 class CamerasHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
-        cursor = self.db.cameras.find()
+        cursor = db.async.cameras.find()
         cameras = yield motor.Op(cursor.to_list)
         result = dict(cameras=cameras, ok=True)
         self.finish(result)

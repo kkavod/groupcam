@@ -1,27 +1,16 @@
-import motor
-import pymongo
-
 import pytest
 
 import tornado.ioloop
 from tornado.testing import AsyncHTTPTestCase
 from tornado.escape import json_decode, json_encode
 
-from groupcam.conf import config
-from groupcam.api.main import Application
-
-
-class TestApplication(Application):
-    def _init_database(self):
-        motor_client = motor.MotorClient().open_sync()
-        self.db = motor_client[config['database']['testing_name']]
+from groupcam.db import db
 
 
 class BaseTestCase(AsyncHTTPTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, request, application):
         self.application = application
-        self._init_database()
         self._drop_database()
 
     def get_new_ioloop(self):
@@ -30,13 +19,9 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_app(self):
         return self.application
 
-    def _init_database(self):
-        mongo_client = pymongo.MongoClient()
-        self.db = mongo_client[config['database']['testing_name']]
-
     def _drop_database(self):
-        collections = self.db.collection_names()
-        [self.db[collection].drop()
+        collections = db.sync.collection_names()
+        [db.sync[collection].drop()
          for collection in collections
          if collection != 'system.indexes']
 

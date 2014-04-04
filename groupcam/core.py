@@ -26,12 +26,14 @@ argparser = argparse.ArgumentParser(description=__description__)
 _exit_func = lambda: sys.exit(-1)
 
 
-def initialize():
+def initialize(testing=False):
     """Initializes the core.
 
     @param config_path: config path string
     """
+
     from groupcam.conf import load_config
+    from groupcam.db import init_database
 
     # Adding common options to argparser
 
@@ -59,6 +61,7 @@ def initialize():
     signal.signal(signal.SIGINT, _exit_func)
 
     load_config(options.config)
+    init_database(testing)
 
 
 def get_child_logger(suffix):

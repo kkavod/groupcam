@@ -1,5 +1,3 @@
-import motor
-
 import tornado.ioloop
 import tornado.web
 
@@ -11,11 +9,6 @@ from groupcam.api.urls import urls
 class Application(tornado.web.Application):
     def __init__(self):
         super().__init__(urls)
-        self._init_database()
-
-    def _init_database(self):
-        motor_client = motor.MotorClient(config['database']['uri']).open_sync()
-        self.db = motor_client[config['database']['name']]
 
 
 def run_http_server():

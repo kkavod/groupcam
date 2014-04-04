@@ -1,3 +1,4 @@
+from groupcam.db import db
 from groupcam.api.tests.base import BaseJSONTestCase
 from groupcam.api.tests.factories import CameraFactory
 
@@ -5,7 +6,7 @@ from groupcam.api.tests.factories import CameraFactory
 class TestCameras(BaseJSONTestCase):
     def test_get_cameras(self):
         resp = self.get('/cameras')
-        self.db.collection.insert({'key': 2})
+        db.sync.collection.insert({'key': 2})
         assert resp.code == 200
         assert resp.json == {}
 
@@ -15,6 +16,6 @@ class TestCameras(BaseJSONTestCase):
         response = self.post(url, camera)
         assert response.code == 201
         assert response.json['ok'] is True
-        found = self.db.cameras.find_one(camera)
+        found = db.sync.cameras.find_one(camera)
         assert found is not None
         assert found['device'].startswith('/dev/video')

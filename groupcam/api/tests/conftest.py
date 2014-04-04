@@ -3,13 +3,13 @@
 
 import pytest
 
-from groupcam.api.tests.base import TestApplication
 from groupcam.core import initialize
+from groupcam.api.main import Application
 
 
 @pytest.fixture(scope='session')
 def application(request):
     """Test application instance.
     """
-    initialize()
-    return TestApplication()
+    initialize(testing=True)
+    return Application()
