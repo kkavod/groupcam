@@ -4,7 +4,10 @@ from multiprocessing import Pool
 
 import motor
 
+import tornado.gen
+
 from groupcam.conf import config
+from groupcam.db import db
 from groupcam.tt4 import consts
 from groupcam.tt4.client import BaseClient
 from groupcam.camera import Camera
@@ -20,9 +23,10 @@ class ClientManager:
         pool = Pool(len(config['server']))
         pool.map_async(_run, [SourceClient, DestinationClient])
 
+    @tornado.gen.engine
     def add(self, camera):
         camera['device'] = self._find_free_device()
-        yield motor.Op(self.db.cameras.insert, camera)
+        yield motor.Op(db.async.cameras.insert, camera)
 
     def update(self, camera):
         pass

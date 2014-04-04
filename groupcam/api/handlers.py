@@ -8,11 +8,7 @@ from groupcam.db import db
 from groupcam.client import manager
 
 
-class BaseHandler(tornado.web.RequestHandler):
-    pass
-
-
-class CamerasHandler(BaseHandler):
+class CamerasHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
