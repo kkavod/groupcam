@@ -17,5 +17,5 @@ def init_database(testing=False):
     else:
         uri, name_key = config['database']['uri'], 'name'
     name = config['database'][name_key]
-    (db.sync, db.async) = (pymongo.MongoClient(uri)[name],
-                           motor.MotorClient(uri).open_sync()[name])
+    db.sync, db.async = (pymongo.MongoClient(uri)[name],
+                         motor.MotorClient(uri).open_sync()[name])

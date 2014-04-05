@@ -1,5 +1,7 @@
 import re
 
+import glob
+
 from multiprocessing import Pool
 
 import motor
@@ -34,8 +36,26 @@ class ClientManager:
     def remove(self, id):
         pass
 
+    def _parse_device_intervals(self):
+        range_from, range_to = self._find_device_ranges()
+        intervals = config['camera']['device_intervals']
+        splitted = map(str.strip, intervals.split(','))
+        splitted_twice = (interval.split('-') for interval in splitted)
+        numbers = set()
+        for interval in splitted_twice:
+            number_from = int(interval[0] or range_from)
+            number_to = int(interval[-1] or range_to) + 1
+            for number in range(number_from, number_to):
+                numbers.add(number)
+        return list(numbers)
+
+    def _find_device_ranges(self):
+        devices = glob.glob('/dev/video*')
+        return [1, 9]
+
     def _find_free_device(self):
-        pass
+        cursor = db.async.cameras.find(fields=['device'])
+        cameras = yield motor.Op(cursor.to_list)
 
 
 class SourceClient(BaseClient):

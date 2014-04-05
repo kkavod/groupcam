@@ -18,9 +18,9 @@ camera:
     height: 480
     title_height: 16
     user_padding: 0.5
-    # device: /dev/video1
     user_timeout: 10
     no_users_message: No cameras available
+    device_intervals: 1-9,11
     quality: 50
     fps: 10
 

@@ -17,6 +17,7 @@ class TT4:
     """
 
     _all_instances = {}
+    _library = None
 
     @classmethod
     def singleton(cls, config_name):
@@ -31,16 +32,21 @@ class TT4:
     def get_instance(cls, config_name):
         return cls._all_instances.get(config_name)
 
+    @classmethod
+    def _get_library(cls):
+        if cls._library is None:
+            module_dir = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.dirname(module_dir)
+            arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+            lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+            lib_abs_path = os.path.join(base_path, lib_rel_path)
+            cls._library = ctypes.cdll.LoadLibrary(lib_abs_path)
+        return cls._library
+
     def __init__(self, server_config):
         self._server_config = server_config
         self._library = self._get_library()
         self._instance = self._library.TT_InitTeamTalkPoll()
-
-    def _get_library(self):
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
-        library_path = 'misc/libTeamTalk4_{}.so'.format(arch)
-        return ctypes.cdll.LoadLibrary(os.path.join(base_path, library_path))
 
     def connect(self):
         flags = self._library.TT_GetFlags(self._instance)
