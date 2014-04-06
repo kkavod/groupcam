@@ -9,6 +9,7 @@ import motor
 import tornado.gen
 
 from groupcam.conf import config
+from groupcam.core import fail_with_error
 from groupcam.db import db
 from groupcam.tt4 import consts
 from groupcam.tt4.client import BaseClient
@@ -19,6 +20,8 @@ class ClientManager:
     _clients = {}
 
     def run_async(self):
+        self._dev_name_format = config['camera']['device_name_format']
+
         def _run(cls):
             cls().run()
 
@@ -27,7 +30,8 @@ class ClientManager:
 
     @tornado.gen.engine
     def add(self, camera):
-        camera['device'] = self._find_free_device()
+        camera['device'] = yield tornado.gen.Task(self._find_free_device)
+        import pdb; pdb.set_trace()
         yield motor.Op(db.async.cameras.insert, camera)
 
     def update(self, camera):
@@ -50,12 +54,33 @@ class ClientManager:
         return list(numbers)
 
     def _find_device_ranges(self):
-        devices = glob.glob('/dev/video*')
-        return [1, 9]
+        file_mask = self._dev_name_format.replace('{number}', '*')
+        devices = glob.glob(file_mask)
+        numbers = sorted(self._get_numbers_from_devices(devices))
+        if not numbers:
+            fail_with_error("No video devices found!")
+        return numbers[0], numbers[-1]
 
-    def _find_free_device(self):
+    def _get_numbers_from_devices(self, devices):
+        numbers = []
+        for device in devices:
+            found = re.findall(r'\d+', device)
+            if found:
+                numbers.append(int(found[0]))
+        return numbers
+
+    def _find_free_device(self, callback):
+        possible_numbers = set(self._parse_device_intervals())
         cursor = db.async.cameras.find(fields=['device'])
-        cameras = yield motor.Op(cursor.to_list)
+        devices = yield motor.Op(cursor.to_list)
+        occupied_numbers = set(self._get_numbers_from_devices(devices))
+        available_numbers = possible_numbers - occupied_numbers
+        if available_numbers:
+            number = min(available_numbers)
+            result = self._dev_name_format.format(number=number)
+        else:
+            result = None
+        return result
 
 
 class SourceClient(BaseClient):

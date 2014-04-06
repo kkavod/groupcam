@@ -38,9 +38,6 @@ class BaseClient:
             message = self._tt4.get_message()
             if message is not None:
                 self._process_message(message)
-            else:
-                if not self._tt4.is_connected():
-                    self.on_connection_lost()
 
     def on_connection_success(self, message):
         command_id = self._tt4.login()

@@ -20,7 +20,8 @@ camera:
     user_padding: 0.5
     user_timeout: 10
     no_users_message: No cameras available
-    device_intervals: 1-9,11
+    device_intervals: 1-
+    device_name_format: /dev/video{number}
     quality: 50
     fps: 10
 
