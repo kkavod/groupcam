@@ -2,7 +2,7 @@ import re
 
 import glob
 
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 import motor
 
@@ -22,16 +22,21 @@ class ClientManager:
     def run_async(self):
         self._dev_name_format = config['camera']['device_name_format']
 
-        def _run(cls):
-            cls().run()
+        clients = [SourceClient]
+        cameras = db.sync.cameras.find()
+#          for camera in cameras:
+#              self._clients[camera['id']] = 
 
-        pool = Pool(len(config['server']))
-        pool.map_async(_run, [SourceClient, DestinationClient])
+        def _run_client(inst):
+            inst.run()
+
+        pool = ThreadPool(len(cameras.count() + 1))
+        # pool.map_async(_run_client, [SourceClient, DestinationClient])
+        pool.map(_run_client, [SourceClient, DestinationClient])
 
     @tornado.gen.engine
     def add(self, camera):
-        camera['device'] = yield tornado.gen.Task(self._find_free_device)
-        import pdb; pdb.set_trace()
+        camera['device'] = yield self._find_free_device()
         yield motor.Op(db.async.cameras.insert, camera)
 
     def update(self, camera):
@@ -69,7 +74,8 @@ class ClientManager:
                 numbers.append(int(found[0]))
         return numbers
 
-    def _find_free_device(self, callback):
+    @tornado.gen.coroutine
+    def _find_free_device(self):
         possible_numbers = set(self._parse_device_intervals())
         cursor = db.async.cameras.find(fields=['device'])
         devices = yield motor.Op(cursor.to_list)
@@ -80,7 +86,7 @@ class ClientManager:
             result = self._dev_name_format.format(number=number)
         else:
             result = None
-        return result
+        raise tornado.gen.Return(result)
 
 
 class SourceClient(BaseClient):

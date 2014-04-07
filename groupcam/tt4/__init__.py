@@ -12,12 +12,23 @@ from groupcam.tt4 import structs
 _ttstr = lambda val: (val or '').encode('utf8')
 
 
+# TODO: move to a proper place
+def _get_library():
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    base_path = os.path.dirname(module_dir)
+    arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+    lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+    lib_abs_path = os.path.join(base_path, lib_rel_path)
+    result = ctypes.cdll.LoadLibrary(lib_abs_path)
+    return result
+
+
 class TT4:
     """TT4 API wrapper.
     """
 
     _all_instances = {}
-    _library = None
+    _library = _get_library()
 
     @classmethod
     def singleton(cls, config_name):
@@ -32,20 +43,8 @@ class TT4:
     def get_instance(cls, config_name):
         return cls._all_instances.get(config_name)
 
-    @classmethod
-    def _get_library(cls):
-        if cls._library is None:
-            module_dir = os.path.dirname(os.path.abspath(__file__))
-            base_path = os.path.dirname(module_dir)
-            arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
-            lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
-            lib_abs_path = os.path.join(base_path, lib_rel_path)
-            cls._library = ctypes.cdll.LoadLibrary(lib_abs_path)
-        return cls._library
-
     def __init__(self, server_config):
         self._server_config = server_config
-        self._library = self._get_library()
         self._instance = self._library.TT_InitTeamTalkPoll()
 
     def connect(self):
@@ -125,8 +124,8 @@ class TT4:
             self._instance, user_id, data_ptr, bytes_number, format_ptr)
         return bool(ret_code)
 
-    def start_broadcast(self):
-        device_id = self._find_device()
+    def start_broadcast(self, device_path):
+        device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
                                             consts.TRANSMIT_VIDEO, True)
@@ -138,7 +137,7 @@ class TT4:
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
-    def _find_device(self):
+    def _find_device(self, device_path):
         device_id = None
 
         device_number = ctypes.c_uint32()
@@ -146,7 +145,6 @@ class TT4:
 
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
-        device_path = config['camera']['device']
 
         if device_number.value > 0:
             video_devices = (structs.VideoCaptureDevice *
