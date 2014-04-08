@@ -17,22 +17,17 @@ from groupcam.camera import Camera
 
 
 class ClientManager:
-    _clients = {}
-
     def run_async(self):
-        self._dev_name_format = config['camera']['device_name_format']
-
-        clients = [SourceClient]
         cameras = db.sync.cameras.find()
-#          for camera in cameras:
-#              self._clients[camera['id']] = 
+        clients = [SourceClient(cameras)]
+        for camera in cameras:
+            clients.append(DestinationClient(camera))
 
         def _run_client(inst):
             inst.run()
 
-        pool = ThreadPool(len(cameras.count() + 1))
-        # pool.map_async(_run_client, [SourceClient, DestinationClient])
-        pool.map(_run_client, [SourceClient, DestinationClient])
+        pool = ThreadPool(len(clients))
+        pool.map_async(_run_client, clients)
 
     @tornado.gen.engine
     def add(self, camera):
@@ -59,7 +54,8 @@ class ClientManager:
         return list(numbers)
 
     def _find_device_ranges(self):
-        file_mask = self._dev_name_format.replace('{number}', '*')
+        file_mask = (config['camera']['device_name_format']
+                     .replace('{number}', '*'))
         devices = glob.glob(file_mask)
         numbers = sorted(self._get_numbers_from_devices(devices))
         if not numbers:
@@ -83,21 +79,17 @@ class ClientManager:
         available_numbers = possible_numbers - occupied_numbers
         if available_numbers:
             number = min(available_numbers)
-            result = self._dev_name_format.format(number=number)
+            result = (config['camera']['device_name_format']
+                      .format(number=number))
         else:
             result = None
         raise tornado.gen.Return(result)
 
 
 class SourceClient(BaseClient):
-    _config_name = 'source'
-
-    def __init__(self):
-        super().__init__()
-
-        self._camera = Camera()
-        regexp_string = config['camera']['nickname_regexp']
-        self._nickname_regexp = re.compile(regexp_string, re.IGNORECASE)
+    def __init__(self, cameras):
+        super().__init__(config['server']['source'])
+        self._cameras = [Camera(camera) for camera in cameras]
 
     def on_command_user_logged_in(self, message):
         user_id = message.first_param
@@ -126,10 +118,14 @@ class SourceClient(BaseClient):
 
 
 class DestinationClient(BaseClient):
-    _config_name = 'destination'
+    def __init__(self, camera):
+        server_config = dict(config['server']['destination'],
+                             nickname=camera['nickname'])
+        super().__init__(server_config)
+        self._device = camera['device']
 
     def on_complete_join_channel(self):
-        self._tt4.start_broadcast()
+        self._tt4.start_broadcast(self._device)
         self._status_mode |= consts.STATUS_VIDEOTX
         self._tt4.change_status(self._status_mode)
         self._logger.info("Broadcast started")

@@ -1,6 +1,5 @@
 from time import sleep
 
-from groupcam.conf import config
 from groupcam.core import logger, get_child_logger, options
 from groupcam.tt4 import TT4, consts
 
@@ -13,7 +12,6 @@ COMPLETE_COMMANDS = {
 
 
 class BaseClient:
-    _config_name = None
     _subscription = (
         consts.SUBSCRIBE_NONE |
         consts.SUBSCRIBE_USER_MSG |
@@ -24,17 +22,21 @@ class BaseClient:
         consts.SUBSCRIBE_DESKTOP
     )
 
-    def __init__(self):
-        self._logger = get_child_logger(self._config_name)
-        self._server_config = config['server'][self._config_name]
-        self._tt4 = TT4.singleton(self._config_name)
+    def __init__(self, server_config):
+        self._stopped = False
+        self._logger = get_child_logger(self.__class__.__name__)
+        self._server_config = server_config
+        self._tt4 = TT4(server_config)
         self._user_id = None
         self._status_mode = consts.STATUS_AVAILABLE
         self._commands = {}
         self._tt4.connect()
 
+    def stop(self):
+        self._stopped = True
+
     def run(self):
-        while True:
+        while not self._stopped:
             message = self._tt4.get_message()
             if message is not None:
                 self._process_message(message)

@@ -12,38 +12,24 @@ from groupcam.tt4 import structs
 _ttstr = lambda val: (val or '').encode('utf8')
 
 
-# TODO: move to a proper place
-def _get_library():
-    module_dir = os.path.dirname(os.path.abspath(__file__))
-    base_path = os.path.dirname(module_dir)
-    arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
-    lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
-    lib_abs_path = os.path.join(base_path, lib_rel_path)
-    result = ctypes.cdll.LoadLibrary(lib_abs_path)
-    return result
-
-
 class TT4:
     """TT4 API wrapper.
     """
 
-    _all_instances = {}
-    _library = _get_library()
+    _library = None
 
     @classmethod
-    def singleton(cls, config_name):
-        if config_name in cls._all_instances:
-            result = cls._all_instances[config_name]
-        else:
-            result = TT4(config['server'][config_name])
-            cls._all_instances[config_name] = result
-        return result
-
-    @classmethod
-    def get_instance(cls, config_name):
-        return cls._all_instances.get(config_name)
+    def _load_library(cls):
+        if cls._library is None:
+            module_dir = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.dirname(module_dir)
+            arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+            lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+            lib_abs_path = os.path.join(base_path, lib_rel_path)
+            cls._library = ctypes.cdll.LoadLibrary(lib_abs_path)
 
     def __init__(self, server_config):
+        self._load_library()
         self._server_config = server_config
         self._instance = self._library.TT_InitTeamTalkPoll()
 

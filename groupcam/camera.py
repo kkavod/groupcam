@@ -1,3 +1,5 @@
+import re
+
 from datetime import datetime
 
 import ctypes
@@ -18,9 +20,10 @@ from groupcam.user import User
 
 
 class Camera:
-    def __init__(self):
+    def __init__(self, camera):
         self._users = {}
 
+        self._camera = camera
         self._lib = self._get_v4l2_lib()
         self._load_settings()
         self._init_device()
@@ -50,15 +53,15 @@ class Camera:
     def _load_settings(self):
         self._width = config['camera']['width']
         self._height = config['camera']['height']
-        self._title = config['camera']['title']
         self._title_padding = config['camera']['title_padding'] / 100.
         self._title_height = (self._height *
                               config['camera']['title_height'] / 100.)
         self._padding = config['camera']['user_padding'] / 100. * self._height
+        self._regexp = re.compile(self._camera['regexp'], re.IGNORECASE)
 
     def _init_device(self):
         self._device_fd = None
-        device_name = config['camera']['device']
+        device_name = self._camera['device']
         device_name_buf = device_name.encode('utf8')
         self._device_fd = self._lib.v4l2_open(device_name_buf, os.O_RDWR)
         if self._device_fd == -1:
@@ -116,7 +119,7 @@ class Camera:
         title_rect = (horizontal_padding, vertical_padding,
                       self._width - horizontal_padding * 2,
                       self._title_height - vertical_padding * 2)
-        self._fit_text_to_rect(self._title, title_rect)
+        self._fit_text_to_rect(self._camera['title'], title_rect)
 
     def _draw_background(self):
         self._context.set_source_rgb(0, 0, 0)
