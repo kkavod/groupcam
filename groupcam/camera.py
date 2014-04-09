@@ -16,12 +16,11 @@ from math import sqrt
 
 from groupcam.conf import config
 from groupcam.core import options, fail_with_error
-from groupcam.user import User
 
 
 class Camera:
     def __init__(self, camera):
-        self._users = {}
+        self._users_data = {}
 
         self._camera = camera
         self._lib = self._get_v4l2_lib()
@@ -30,17 +29,17 @@ class Camera:
         self._init_surface()
         self._update()
 
-    def process_user_frame(self, user_id, frames_count):
-        if user_id in self._users:
-            user = self._users[user_id]
-        else:
-            user = User(user_id)
-            self._users[user_id] = user
-        user.update(frames_count) and self._update()
+    def add_user(self, user):
+        if user.id not in self._users_data:
+            self._users_data[user.id] = {
+                'inst': user,
+                'display_rect': (0, 0, 0, 0),
+            }
+        self._update()
 
     def remove_user(self, user_id):
-        if user_id in self._users:
-            del self._users[user_id]
+        if user_id in self._users_data:
+            del self._users_data[user_id]
             self._update()
 
     def _get_v4l2_lib(self):
@@ -57,7 +56,7 @@ class Camera:
         self._title_height = (self._height *
                               config['camera']['title_height'] / 100.)
         self._padding = config['camera']['user_padding'] / 100. * self._height
-        self._regexp = re.compile(self._camera['regexp'], re.IGNORECASE)
+        self.nick_regexp = re.compile(self._camera['regexp'], re.IGNORECASE)
 
     def _init_device(self):
         self._device_fd = None
@@ -102,7 +101,7 @@ class Camera:
     def _update(self):
         self._draw_title()
         self._draw_background()
-        if self._users:
+        if self._users_data:
             self._update_users()
             self._draw_users()
         else:
@@ -134,18 +133,19 @@ class Camera:
         self._fit_text_to_rect(message, display_rect)
 
     def _draw_users(self):
-        for user in self._users.values():
+        for user_data in self._users_data.values():
             self._context.save()
-            left, top, width, height = user.display_rect
+            left, top, width, height = user_data['display_rect']
             self._context.translate(left, top)
-            self._context.scale(width / user.img_width,
-                                height / user.img_height)
-            self._context.set_source_surface(user.surface)
+            self._context.scale(width / user_data['inst'].img_width,
+                                height / user_data['inst'].img_height)
+            self._context.set_source_surface(user_data['inst'].surface)
             self._context.paint()
             self._context.restore()
 
             if options.debug:
-                self._draw_user_labels(left, top, str(user.user_id))
+                self._draw_user_labels(
+                    left, top, str(user_data['inst'].user_id))
 
     def _draw_user_labels(self, left, top, label):
         font_size = self._height * 0.05
@@ -159,7 +159,8 @@ class Camera:
         display_height = self._height - self._title_height - self._padding * 2
 
         aspect_ratio = self._width / self._height
-        pixels_total = self._width * display_height / (.5 + len(self._users))
+        display_area = self._width * display_height
+        pixels_total = display_area / (.5 + len(self._users_data))
 
         user_width = round(sqrt(pixels_total * aspect_ratio))
         user_height = round(sqrt(pixels_total / aspect_ratio))
@@ -180,15 +181,15 @@ class Camera:
         left = self._width - horizontal_middle
         top = self._height - vertical_middle - self._padding
 
-        sort_key = lambda user: user.user_id
-        users = sorted(self._users.values(), key=sort_key)
-        for index, user in enumerate(users):
+        sort_key = lambda user_data: user_data['inst'].user_id
+        users = sorted(self._users_data.values(), key=sort_key)
+        for index, user_data in enumerate(users):
             x = left + (index % cols_number * user_width)
             y = top + int(index / cols_number) * user_height + self._padding
-            user.display_rect = (x, y,
-                                 user_width - self._padding,
-                                 user_height - self._padding)
-            self._remove_user_if_dead(user)
+            user_data['display_rect'] = (x, y,
+                                         user_width - self._padding,
+                                         user_height - self._padding)
+            self._remove_user_if_dead(user_data['inst'])
 
     def _remove_user_if_dead(self, user):
         seconds = (datetime.now() - user.updated).seconds

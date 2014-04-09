@@ -14,6 +14,7 @@ from groupcam.db import db
 from groupcam.tt4 import consts
 from groupcam.tt4.client import BaseClient
 from groupcam.camera import Camera
+from groupcam.user import User
 
 
 class ClientManager:
@@ -89,32 +90,39 @@ class ClientManager:
 class SourceClient(BaseClient):
     def __init__(self, cameras):
         super().__init__(config['server']['source'])
+        self._users = {}
         self._cameras = [Camera(camera) for camera in cameras]
+        self._user_cameras = {}
 
     def on_command_user_logged_in(self, message):
         user_id = message.first_param
         subscription = self._subscription
 
-        if self._user_match(user_id):
+        camera = self._get_user_camera(user_id)
+        if camera is not None:
             subscription &= not consts.SUBSCRIBE_VIDEO
+            self._users[user_id] = User(user_id, self._tt4)
+            self._user_cameras[user_id] = camera
 
         self._tt4.unsubscribe(user_id, subscription)
 
     def on_user_video_frame(self, message):
-        self._camera.process_user_frame(message.first_param,
-                                        message.second_param)
+        user = self._users[message.first_param]
+        user.update(message.second_param)
+        self._user_cameras[message.first_param].add_user(user)
 
     def on_command_user_left(self, message):
         self._camera.remove_user(message.first_param)
 
-    def _user_match(self, user_id):
+    def _get_user_camera(self, user_id):
         if user_id == self._user_id:
-            result = False
+            return None
         else:
             profile = self._tt4.get_user(user_id)
             nickname = str(profile.nickname, 'utf8')
-            result = bool(self._nickname_regexp.match(nickname))
-        return result
+            for camera in self._cameras:
+                if camera.nick_regexp.match(nickname):
+                    return camera
 
 
 class DestinationClient(BaseClient):
