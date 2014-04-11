@@ -1,6 +1,6 @@
 from time import sleep
 
-from groupcam.core import logger, get_child_logger, options
+from groupcam.core import get_child_logger, options
 from groupcam.tt4 import TT4, consts
 
 
@@ -24,7 +24,9 @@ class BaseClient:
 
     def __init__(self, server_config):
         self._stopped = False
-        self._logger = get_child_logger(self.__class__.__name__)
+        logger_name = "{}/{}".format(self.__class__.__name__,
+                                     server_config['nickname'])
+        self._logger = get_child_logger(logger_name)
         self._server_config = server_config
         self._tt4 = TT4(server_config)
         self._user_id = None
@@ -130,7 +132,7 @@ class BaseClient:
         self._tt4.change_status(self._status_mode)
 
         channel_path = self._server_config['channel_path']
-        logger.info("Joining the channel {}...".format(channel_path))
+        self._logger.info("Joining the channel {}...".format(channel_path))
         channel_id = self._tt4.get_channel_id_from_path(channel_path)
 
         channel_password = self._server_config['channel_password']

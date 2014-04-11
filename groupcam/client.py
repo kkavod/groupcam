@@ -19,7 +19,7 @@ from groupcam.user import User
 
 class ClientManager:
     def run_async(self):
-        cameras = db.sync.cameras.find()
+        cameras = list(db.sync.cameras.find())
         clients = [SourceClient(cameras)]
         for camera in cameras:
             clients.append(DestinationClient(camera))
@@ -133,6 +133,7 @@ class DestinationClient(BaseClient):
         self._device = camera['device']
 
     def on_complete_join_channel(self):
+        import pdb; pdb.set_trace()
         self._tt4.start_broadcast(self._device)
         self._status_mode |= consts.STATUS_VIDEOTX
         self._tt4.change_status(self._status_mode)

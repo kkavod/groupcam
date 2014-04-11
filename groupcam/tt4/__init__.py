@@ -111,6 +111,7 @@ class TT4:
         return bool(ret_code)
 
     def start_broadcast(self, device_path):
+        import pdb; pdb.set_trace()
         device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
@@ -172,6 +173,7 @@ class TT4:
         )
 
         if ret_code <= 0:
+            import pdb; pdb.set_trace()
             fail_with_error("Unable to start broadcast")
 
     def __del__(self):

@@ -30,8 +30,8 @@ class Camera:
         self._update()
 
     def add_user(self, user):
-        if user.id not in self._users_data:
-            self._users_data[user.id] = {
+        if user.user_id not in self._users_data:
+            self._users_data[user.user_id] = {
                 'inst': user,
                 'display_rect': (0, 0, 0, 0),
             }
