@@ -7,6 +7,7 @@ from groupcam.conf import config
 from groupcam.core import fail_with_error
 from groupcam.tt4 import consts
 from groupcam.tt4 import structs
+from groupcam.core import logger
 
 
 _ttstr = lambda val: (val or '').encode('utf8')
@@ -16,21 +17,9 @@ class TT4:
     """TT4 API wrapper.
     """
 
-    _library = None
-
-    @classmethod
-    def _load_library(cls):
-        if cls._library is None:
-            module_dir = os.path.dirname(os.path.abspath(__file__))
-            base_path = os.path.dirname(module_dir)
-            arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
-            lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
-            lib_abs_path = os.path.join(base_path, lib_rel_path)
-            cls._library = ctypes.cdll.LoadLibrary(lib_abs_path)
-
     def __init__(self, server_config):
-        self._load_library()
         self._server_config = server_config
+        self._library = self._get_library()
         self._instance = self._library.TT_InitTeamTalkPoll()
 
     def connect(self):
@@ -111,8 +100,8 @@ class TT4:
         return bool(ret_code)
 
     def start_broadcast(self, device_path):
-        import pdb; pdb.set_trace()
-        device_id = self._find_device(device_path)
+        device_id = device_path + ',0'
+#          device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
                                             consts.TRANSMIT_VIDEO, True)
@@ -124,10 +113,19 @@ class TT4:
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
+    def _get_library(self):
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(module_dir)
+        arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+        lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+        lib_abs_path = os.path.join(base_path, lib_rel_path)
+        library = ctypes.cdll.LoadLibrary(lib_abs_path)
+        return library
+
     def _find_device(self, device_path):
         device_id = None
 
-        device_number = ctypes.c_uint32()
+        device_number = ctypes.c_uint32(3)
         device_number_ptr = ctypes.pointer(device_number)
 
         self._library.TT_GetVideoCaptureDevices(self._instance,
@@ -139,14 +137,17 @@ class TT4:
             self._library.TT_GetVideoCaptureDevices(self._instance,
                                                     video_devices,
                                                     device_number_ptr)
+            logger.info(device_number.value)
             for index in range(device_number.value):
                 device_id = str(video_devices[index].device_id, 'utf-8')
+                logger.info(device_id)
                 if device_path == device_id.split(',')[0]:
                     break
 
         if device_id is None:
             fail_with_error("Device {} not found".format(device_path))
 
+        logger.info("%s | %s", device_path * 5, device_id * 5)
         return device_id
 
     def _init_capture_device(self, device_id):
@@ -173,7 +174,6 @@ class TT4:
         )
 
         if ret_code <= 0:
-            import pdb; pdb.set_trace()
             fail_with_error("Unable to start broadcast")
 
     def __del__(self):

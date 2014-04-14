@@ -1,3 +1,5 @@
+from time import sleep
+
 import re
 
 import glob
@@ -24,10 +26,8 @@ class ClientManager:
         for camera in cameras:
             clients.append(DestinationClient(camera))
 
-        def _run_client(inst):
-            inst.run()
-
         pool = ThreadPool(len(clients))
+        _run_client = lambda inst: inst.run()
         pool.map_async(_run_client, clients)
 
     @tornado.gen.engine
@@ -132,8 +132,12 @@ class DestinationClient(BaseClient):
         super().__init__(server_config)
         self._device = camera['device']
 
+    def run(self):
+        # TODO: connect on device have been created instead of the timeout
+        sleep(5.)
+        super().run()
+
     def on_complete_join_channel(self):
-        import pdb; pdb.set_trace()
         self._tt4.start_broadcast(self._device)
         self._status_mode |= consts.STATUS_VIDEOTX
         self._tt4.change_status(self._status_mode)
