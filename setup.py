@@ -27,6 +27,7 @@ setup(
         'motor==0.1.2',
         'tornado==3.2',
         'pytest==2.5.2',
+        'numpy',
     ],
     packages=['groupcam', 'groupcam.tt4', 'groupcam.api'],
     package_data={
