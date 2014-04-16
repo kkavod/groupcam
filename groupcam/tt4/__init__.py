@@ -101,6 +101,7 @@ class TT4:
 
     def start_broadcast(self, device_path):
         device_id = device_path + ',0'
+        # TODO: fix me!
 #          device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,

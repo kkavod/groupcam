@@ -112,7 +112,9 @@ class SourceClient(BaseClient):
         self._user_cameras[message.first_param].add_user(user)
 
     def on_command_user_left(self, message):
-        self._camera.remove_user(message.first_param)
+        user_id = message.first_param
+        if user_id in self._user_cameras:
+            self._user_cameras[user_id].remove_user(user_id)
 
     def _get_user_camera(self, user_id):
         if user_id == self._user_id:
