@@ -92,39 +92,43 @@ class SourceClient(BaseClient):
         super().__init__(config['server']['source'])
         self._users = {}
         self._cameras = [Camera(camera) for camera in cameras]
-        self._user_cameras = {}
 
     def on_command_user_logged_in(self, message):
         user_id = message.first_param
-        subscription = self._subscription
+        user = User(user_id, self._tt4)
+        self._users[user_id] = user
 
-        camera = self._get_user_camera(user_id)
-        if camera is not None:
+        subscription = self._subscription
+        cameras = self._get_user_cameras(user_id)
+        if cameras:
+            [camera.add_user(user) for camera in cameras]
             subscription &= not consts.SUBSCRIBE_VIDEO
-            self._users[user_id] = User(user_id, self._tt4)
-            self._user_cameras[user_id] = camera
 
         self._tt4.unsubscribe(user_id, subscription)
 
     def on_user_video_frame(self, message):
         user = self._users[message.first_param]
         user.update(message.second_param)
-        self._user_cameras[message.first_param].add_user(user)
+        assert user.img_width > 0
+        assert user.img_height > 0
+        for camera in self._cameras:
+            camera.update_if_has_user(user.user_id)
 
     def on_command_user_left(self, message):
-        user_id = message.first_param
-        if user_id in self._user_cameras:
-            self._user_cameras[user_id].remove_user(user_id)
+        for camera in self._cameras:
+            camera.remove_user(message.first_param)
 
-    def _get_user_camera(self, user_id):
+    def _get_user_cameras(self, user_id):
         if user_id == self._user_id:
-            return None
+            cameras = []
         else:
             profile = self._tt4.get_user(user_id)
             nickname = str(profile.nickname, 'utf8')
-            for camera in self._cameras:
-                if camera.nick_regexp.match(nickname):
-                    return camera
+            cameras = [
+                camera for camera in self._cameras
+                if camera.nick_regexp.match(nickname)
+            ]
+        return cameras
 
 
 class DestinationClient(BaseClient):

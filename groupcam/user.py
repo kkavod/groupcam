@@ -9,7 +9,7 @@ class User:
         self.user_id = user_id
         self.surface = None
         self.img_width = self.img_height = 0
-        self.updated = datetime.now()
+        self.updated = None
         self._tt4 = tt4
         self._data = None
 

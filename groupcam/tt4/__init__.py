@@ -7,7 +7,6 @@ from groupcam.conf import config
 from groupcam.core import fail_with_error
 from groupcam.tt4 import consts
 from groupcam.tt4 import structs
-from groupcam.core import logger
 
 
 _ttstr = lambda val: (val or '').encode('utf8')
@@ -100,9 +99,7 @@ class TT4:
         return bool(ret_code)
 
     def start_broadcast(self, device_path):
-        device_id = device_path + ',0'
-        # TODO: fix me!
-#          device_id = self._find_device(device_path)
+        device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
                                             consts.TRANSMIT_VIDEO, True)
@@ -124,6 +121,9 @@ class TT4:
         return library
 
     def _find_device(self, device_path):
+        # TODO: fix me!
+        return device_path + ',0'
+
         device_id = None
 
         device_number = ctypes.c_uint32(3)
@@ -138,17 +138,13 @@ class TT4:
             self._library.TT_GetVideoCaptureDevices(self._instance,
                                                     video_devices,
                                                     device_number_ptr)
-            logger.info(device_number.value)
             for index in range(device_number.value):
                 device_id = str(video_devices[index].device_id, 'utf-8')
-                logger.info(device_id)
                 if device_path == device_id.split(',')[0]:
                     break
 
         if device_id is None:
             fail_with_error("Device {} not found".format(device_path))
-
-        logger.info("%s | %s", device_path * 5, device_id * 5)
         return device_id
 
     def _init_capture_device(self, device_id):

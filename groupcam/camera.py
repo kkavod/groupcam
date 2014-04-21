@@ -1,11 +1,11 @@
-import re
-
 from datetime import datetime
 
-import ctypes
+import re
+import operator
 
 import os
 import fcntl
+import ctypes
 
 import v4l2
 
@@ -20,7 +20,7 @@ from groupcam.core import options, fail_with_error
 
 class Camera:
     def __init__(self, camera):
-        self._users_data = {}
+        self._users = {}
 
         self._camera = camera
         self._lib = self._get_v4l2_lib()
@@ -30,16 +30,15 @@ class Camera:
         self._update()
 
     def add_user(self, user):
-        if user.user_id not in self._users_data:
-            self._users_data[user.user_id] = {
-                'inst': user,
-                'display_rect': (0, 0, 0, 0),
-            }
-        self._update()
+        self._users[user.user_id] = user
 
     def remove_user(self, user_id):
-        if user_id in self._users_data:
-            del self._users_data[user_id]
+        if user_id in self._users:
+            del self._users[user_id]
+            self._update()
+
+    def update_if_has_user(self, user_id):
+        if user_id in self._users:
             self._update()
 
     def _get_v4l2_lib(self):
@@ -101,11 +100,7 @@ class Camera:
     def _update(self):
         self._draw_title()
         self._draw_background()
-        if self._users_data:
-            self._update_users()
-            self._draw_users()
-        else:
-            self._draw_no_users()
+        self._draw_users() or self._draw_no_users()
         os.write(self._device_fd, self._data)
 
     def _draw_title(self):
@@ -133,34 +128,15 @@ class Camera:
         self._fit_text_to_rect(message, display_rect)
 
     def _draw_users(self):
-        for user_data in self._users_data.values():
-            self._context.save()
-            left, top, width, height = user_data['display_rect']
-            self._context.translate(left, top)
-            self._context.scale(width / user_data['inst'].img_width,
-                                height / user_data['inst'].img_height)
-            self._context.set_source_surface(user_data['inst'].surface)
-            self._context.paint()
-            self._context.restore()
+        alive_users = [user for user in self._users.values()
+                       if self._user_is_alive(user)]
 
-            if options.debug:
-                self._draw_user_labels(
-                    left, top, str(user_data['inst'].user_id))
-
-    def _draw_user_labels(self, left, top, label):
-        font_size = self._height * 0.05
-        self._context.set_font_size(font_size)
-        self._context.move_to(left, top + font_size)
-        self._context.set_source_rgb(0.4, 1., 0.4)
-        self._context.show_text(label)
-
-    def _update_users(self):
         display_width = self._width
         display_height = self._height - self._title_height - self._padding * 2
 
         aspect_ratio = self._width / self._height
         display_area = self._width * display_height
-        pixels_total = display_area / (.5 + len(self._users_data))
+        pixels_total = display_area / (.5 + len(alive_users))
 
         user_width = round(sqrt(pixels_total * aspect_ratio))
         user_height = round(sqrt(pixels_total / aspect_ratio))
@@ -181,20 +157,44 @@ class Camera:
         left = self._width - horizontal_middle
         top = self._height - vertical_middle - self._padding
 
-        sort_key = lambda user_data: user_data['inst'].user_id
-        users = sorted(self._users_data.values(), key=sort_key)
-        for index, user_data in enumerate(users):
+        users = sorted(alive_users, key=operator.attrgetter('user_id'))
+        for index, user in enumerate(users):
             x = left + (index % cols_number * user_width)
             y = top + int(index / cols_number) * user_height + self._padding
-            user_data['display_rect'] = (x, y,
-                                         user_width - self._padding,
-                                         user_height - self._padding)
-            self._remove_user_if_dead(user_data['inst'])
+            display_rect = (x, y,
+                            user_width - self._padding,
+                            user_height - self._padding)
 
-    def _remove_user_if_dead(self, user):
-        seconds = (datetime.now() - user.updated).seconds
-        if seconds > config['camera']['user_timeout']:
-            self.remove_user(user.user_id)
+            self._draw_user(user, display_rect)
+        return bool(users)
+
+    def _draw_user(self, user, display_rect):
+        self._context.save()
+        left, top, width, height = display_rect
+        self._context.translate(left, top)
+        self._context.scale(width / user.img_width,
+                            height / user.img_height)
+        self._context.set_source_surface(user.surface)
+        self._context.paint()
+        self._context.restore()
+
+        if options.debug:
+            self._draw_user_labels(left, top, str(user.user_id))
+
+    def _draw_user_labels(self, left, top, label):
+        font_size = self._height * 0.05
+        self._context.set_font_size(font_size)
+        self._context.move_to(left, top + font_size)
+        self._context.set_source_rgb(0.4, 1., 0.4)
+        self._context.show_text(label)
+
+    def _user_is_alive(self, user):
+        if user.updated is None:
+            result = False
+        else:
+            seconds = (datetime.now() - user.updated).seconds
+            result = seconds <= config['camera']['user_timeout']
+        return result
 
     def _fit_text_to_rect(self, text, rect, color=(1., 1., 1.)):
         rect_left, rect_top, rect_width, rect_height = rect
