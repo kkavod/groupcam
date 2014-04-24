@@ -93,7 +93,7 @@ class TT4:
 
     def get_user_video_frame(self, user_id, data, bytes_number, video_format):
         format_ptr = ctypes.pointer(video_format)
-        data_ptr = data.ctypes.data
+        data_ptr = ctypes.c_void_p(data.ctypes.data)
         ret_code = self._library.TT_GetUserVideoFrame(
             self._instance, user_id, data_ptr, bytes_number, format_ptr)
         return bool(ret_code)
