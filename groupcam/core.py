@@ -1,3 +1,4 @@
+import os
 import sys
 
 import signal
@@ -60,8 +61,13 @@ def initialize(testing=False):
 
     signal.signal(signal.SIGINT, _exit_func)
 
-    load_config(options.config)
-    init_database(testing)
+    if testing:
+        conf_path = get_project_path('misc/testing.yaml')
+    else:
+        conf_path = options.config
+
+    load_config(conf_path)
+    init_database()
 
 
 def get_child_logger(suffix):
@@ -85,3 +91,15 @@ def fail_with_error(message):
     logger.critical(message, exc_info=exc_info)
 
     _exit_func()
+
+
+def get_project_path(relative_path):
+    """Returns absolute path constructed from a relative path under
+    the current project.
+
+    @param relative_path: project sub-path
+    """
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    project_path = os.path.join(base_path, relative_path)
+    return project_path
