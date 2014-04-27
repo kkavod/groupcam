@@ -115,8 +115,10 @@ class SourceClient(BaseClient):
             camera.update_if_has_user(user.user_id)
 
     def on_command_user_left(self, message):
-        for camera in self._cameras:
-            camera.remove_user(message.first_param)
+        # TODO: immidiately hide user on leaving the channel
+        # for camera in self._cameras:
+        #    camera.remove_user(message.first_param)
+        pass
 
     def _get_user_cameras(self, user_id):
         if user_id == self._user_id:

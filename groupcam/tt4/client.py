@@ -91,6 +91,9 @@ class BaseClient:
     def on_command_user_logged_out(self, message):
         pass
 
+    def on_command_user_joined(self, message):
+        pass
+
     def on_command_user_left(self, message):
         pass
 
@@ -123,6 +126,8 @@ class BaseClient:
             self.on_command_error(message)
         elif code == consts.WM_TEAMTALK_CMD_USER_LOGGEDOUT:
             self.on_command_user_logged_out(message)
+        elif code == consts.WM_TEAMTALK_CMD_USER_JOINED:
+            self.on_command_user_joined(message)
         elif code == consts.WM_TEAMTALK_CMD_USER_LEFT:
             self.on_command_user_left(message)
         else:
