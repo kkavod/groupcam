@@ -22,10 +22,12 @@ from groupcam.user import User
 class ClientManager:
     def run_async(self):
         cameras = list(db.sync.cameras.find())
-        clients = [SourceClient(cameras)]
+        self.src_client = SourceClient(cameras)
+        self.dest_clients = []
         for camera in cameras:
-            clients.append(DestinationClient(camera))
+            self.dest_clients.append(DestinationClient(camera))
 
+        clients = [self.src_client] + self.dest_clients
         pool = ThreadPool(len(clients))
         _run_client = lambda inst: inst.run()
         pool.map_async(_run_client, clients)
@@ -116,8 +118,8 @@ class SourceClient(BaseClient):
 
     def on_command_user_left(self, message):
         # TODO: immidiately hide user on leaving the channel
-        # for camera in self._cameras:
-        #    camera.remove_user(message.first_param)
+        # user = self._users[message.first_param]
+        # user.hide()
         pass
 
     def _get_user_cameras(self, user_id):

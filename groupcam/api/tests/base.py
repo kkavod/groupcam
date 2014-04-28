@@ -26,7 +26,7 @@ class BaseTestCase(AsyncHTTPTestCase):
          if collection != 'system.indexes']
 
 
-class BaseJSONTestCase(BaseTestCase):
+class BaseAPITestCase(BaseTestCase):
     _headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

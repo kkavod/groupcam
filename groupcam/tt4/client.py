@@ -32,6 +32,7 @@ class BaseClient:
         self._user_id = None
         self._status_mode = consts.STATUS_AVAILABLE
         self._commands = {}
+        self.users = {}
         self._tt4.connect()
 
     def stop(self):
@@ -92,10 +93,11 @@ class BaseClient:
         pass
 
     def on_command_user_joined(self, message):
-        pass
+        user = self._tt4.get_user(message.first_param)
+        self.users[message.first_param] = user
 
     def on_command_user_left(self, message):
-        pass
+        del self.users[message.first_param]
 
     def on_complete_join_channel(self):
         self._logger.info("Joined the channel")

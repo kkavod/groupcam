@@ -1,9 +1,9 @@
 from groupcam.db import db
-from groupcam.api.tests.base import BaseJSONTestCase
+from groupcam.api.tests.base import BaseAPITestCase
 from groupcam.api.tests.factories import CameraFactory
 
 
-class TestCameras(BaseJSONTestCase):
+class TestCameras(BaseAPITestCase):
     def test_get_cameras(self):
         resp = self.get('/cameras')
         db.sync.collection.insert({'key': 2})
