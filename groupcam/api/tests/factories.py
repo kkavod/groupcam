@@ -1,7 +1,6 @@
 """A very primitive factories framework.
 """
 
-import random
 import itertools
 
 
