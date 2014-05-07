@@ -7,7 +7,6 @@ class TestPresets(BaseAPITestCase):
     @classmethod
     def setup_class(cls):
         cls._cameras = [CameraFactory() for index in range(7)]
-        import pdb; pdb.set_trace()
         db.sync.cameras.insert(cls._cameras)
 
     def test_get_presets(self):

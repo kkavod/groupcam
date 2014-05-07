@@ -21,8 +21,6 @@ options = argparse.Namespace()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('groupcam')
 
-argparser = argparse.ArgumentParser(description=__description__)
-
 # Exit function to call on failure
 _exit_func = lambda: sys.exit(-1)
 
@@ -35,6 +33,8 @@ def initialize(testing=False):
 
     from groupcam.conf import load_config
     from groupcam.db import init_database
+
+    argparser = argparse.ArgumentParser(description=__description__)
 
     # Adding common options to argparser
 
@@ -53,7 +53,7 @@ def initialize(testing=False):
     argparser.add_argument('-c', '--config', dest='config',
                            help="config file path")
 
-    argparser.parse_args(namespace=options)
+    argparser.parse_args(args=[] if testing else None, namespace=options)
 
     if options.debug:
         logger.setLevel(logging.DEBUG)

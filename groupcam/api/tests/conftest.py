@@ -19,8 +19,11 @@ class TestApplication(Application):
 def application(request):
     """Test application instance.
     """
+    return TestApplication()
+
+
+def pytest_runtestloop(session):
     initialize(testing=True)
     manager.run_async()
     # TODO: replace with join channel waiter
     sleep(1.)
-    return TestApplication()
