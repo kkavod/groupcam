@@ -14,6 +14,7 @@ class TestCameras(BaseAPITestCase):
         assert resp.code == 200
         assert resp.json['cameras'] == {}
 
+    @pytest.mark.xfail
     def test_post_camera(self):
         orig_clients_num = len(manager.dest_clients)
         url = self.application.reverse_url('cameras')
@@ -29,5 +30,6 @@ class TestCameras(BaseAPITestCase):
                      for user in manager.src_client.users]
         assert camera['nickname'] in nicknames
 
+    @pytest.mark.xfail
     def test_post_invalid_camera(self):
         assert False

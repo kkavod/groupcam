@@ -78,7 +78,6 @@ class PresetsHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def post(self):
-        camera = tornado.escape.json_decode(self.request.body)
-        manager.add(camera)
+        preset = tornado.escape.json_decode(self.request.body)
         self.set_status(201)
         self.finish({'ok': True})

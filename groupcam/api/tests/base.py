@@ -1,29 +1,25 @@
-import pytest
-
 import tornado.ioloop
 from tornado.testing import AsyncHTTPTestCase
 from tornado.escape import json_decode, json_encode
 
-from groupcam.db import db
+from groupcam.api.main import Application
+
+
+class TestApplication(Application):
+    def __init__(self):
+        super().__init__()
 
 
 class BaseTestCase(AsyncHTTPTestCase):
-    @pytest.fixture(autouse=True)
-    def initialize(self, request, application):
-        self.application = application
-        self._drop_database()
+    @classmethod
+    def setup_class(cls):
+        cls.application = TestApplication()
 
     def get_new_ioloop(self):
         return tornado.ioloop.IOLoop.instance()
 
     def get_app(self):
         return self.application
-
-    def _drop_database(self):
-        collections = db.sync.collection_names()
-        [db.sync[collection].drop()
-         for collection in collections
-         if collection != 'system.indexes']
 
 
 class BaseAPITestCase(BaseTestCase):
