@@ -98,7 +98,7 @@ class PresetsHandler(BaseHandler):
 class PresetHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
-    def update(self, camera_id, number):
+    def put(self, camera_id, number):
         preset = tornado.escape.json_decode(self.request.body)
         result = {}
         try:

@@ -29,27 +29,25 @@ class BaseAPITestCase(BaseTestCase):
     }
 
     def get(self, path):
-        return self.fetch(path, headers=self._headers)
+        return self.fetch(path)
 
     def post(self, path, data):
-        response = self.fetch(path, method='POST',
-                              headers=self._headers,
-                              body=json_encode(data))
+        response = self.fetch(path, method='POST', data=data)
         return response
 
-    def update(self, path, data):
-        response = self.fetch(path, method='UPDATE',
-                              headers=self._headers,
-                              body=json_encode(data))
+    def put(self, path, data):
+        response = self.fetch(path, method='PUT', data=data)
         return response
 
     def delete(self, path):
-        return self.fetch(path, method='DELETE',
-                          headers=self._headers)
+        return self.fetch(path, method='DELETE')
 
-    def fetch(self, path, **kwargs):
+    def fetch(self, path, method='GET', data=None):
         """Requests data from the HTTP server using the path specified.
         """
+        kwargs = dict(method=method, headers=self._headers)
+        if data is not None:
+            kwargs['body'] = json_encode(data)
         response = super().fetch(path, **kwargs)
         self._update_response_with_json(response)
         return response

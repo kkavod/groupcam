@@ -51,5 +51,5 @@ class TestPreset(BaseAPITestCase):
 
     def test_update_preset_improperly(self):
         invalid_preset = dict(self._preset, number="invalid")
-        resp = self.update(self._url, invalid_preset)
+        resp = self.put(self._url, invalid_preset)
         assert resp.code == 400
