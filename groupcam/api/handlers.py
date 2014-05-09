@@ -1,12 +1,14 @@
 import operator
 
 import motor
+import colander
 
 import tornado.web
 import tornado.gen
 
 from groupcam.db import db
 from groupcam.client import manager
+from groupcam.api.schemas import Preset
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -77,7 +79,33 @@ class PresetsHandler(BaseHandler):
 
     @tornado.web.asynchronous
     @tornado.gen.engine
-    def post(self):
+    def post(self, camera_id):
         preset = tornado.escape.json_decode(self.request.body)
-        self.set_status(201)
-        self.finish({'ok': True})
+        result = {}
+        try:
+            clean_preset = Preset().deserialize(preset)
+        except colander.Invalid as e:
+            self.set_status(400)
+            result = dict(errors=e.asdict(), ok=False)
+        else:
+            upd_args = {'id': camera_id}, {'$push': {'presets': clean_preset}}
+            yield motor.Op(db.async.cameras.update, *upd_args)
+            self.set_status(201)
+            result = {'ok': True}
+        self.finish(result)
+
+
+class PresetHandler(BaseHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.engine
+    def update(self, camera_id, number):
+        preset = tornado.escape.json_decode(self.request.body)
+        result = {}
+        try:
+            clean_preset = Preset().deserialize(preset)
+        except colander.Invalid as e:
+            self.set_status(400)
+            result = dict(errors=e.asdict(), ok=False)
+        else:
+            result = {'ok': True}
+        self.finish(result)
