@@ -4,6 +4,7 @@ import re
 
 import glob
 
+from threading import Thread
 from multiprocessing.pool import ThreadPool
 
 import motor
@@ -20,6 +21,9 @@ from groupcam.user import User
 
 
 class ClientManager:
+    def __init__(self):
+        self._run_client = lambda inst: inst.run()
+
     def run_async(self):
         cameras = list(db.sync.cameras.find())
         self.src_client = SourceClient(cameras)
@@ -29,13 +33,16 @@ class ClientManager:
 
         clients = [self.src_client] + self.dest_clients
         pool = ThreadPool(len(clients))
-        _run_client = lambda inst: inst.run()
-        pool.map_async(_run_client, clients)
+        pool.map_async(self._run_client, clients)
 
-    @tornado.gen.engine
+    @tornado.gen.coroutine
     def add(self, camera):
         camera['device'] = yield self._find_free_device()
         yield motor.Op(db.async.cameras.insert, camera)
+        client = DestinationClient(camera)
+        self.dest_clients.append(client)
+        thread = Thread(target=self._run_client, args=[client])
+        thread.start()
 
     def update(self, camera):
         pass
@@ -144,7 +151,7 @@ class DestinationClient(BaseClient):
 
     def run(self):
         # TODO: connect on device have been created instead of the timeout
-        sleep(5.)
+#          sleep(5.)
         super().run()
 
     def on_complete_join_channel(self):

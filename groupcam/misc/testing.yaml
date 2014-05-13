@@ -15,3 +15,4 @@ server:
     destination:
         host: localhost
         server_password: 
+        channel_path: /

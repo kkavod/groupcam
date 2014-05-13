@@ -45,7 +45,7 @@ class CamerasHandler(BaseHandler):
     @tornado.gen.engine
     def post(self):
         camera = tornado.escape.json_decode(self.request.body)
-        manager.add(camera)
+        yield manager.add(camera)
         self.set_status(201)
         self.finish({'ok': True})
 
