@@ -21,18 +21,16 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_app(self):
         return self.application
 
-    def wait_until(self, condition, timeout):
-        timeout = timeout and self.get_async_test_timeout()
+    def wait_until(self, condition, timeout=None):
+        self._condition = condition
+        self.io_loop.add_callback(self._waiter)
+        self.wait(timeout=timeout)
 
-#          timeout = self.io_loop.add_timeout(self.io_loop.time() + timeout, timeout_func)
-#          while True:
-#              self.__running = True
-#              self.io_loop.start()
-#              if (self.__failure is not None or
-#                      condition is None or condition()):
-#                  break
-#          if self.__timeout is not None:
-#              self.io_loop.remove_timeout(self.__timeout)
+    def _waiter(self):
+        if self._condition():
+            self.stop()
+        else:
+            self.io_loop.add_callback(self._waiter)
 
 
 class BaseAPITestCase(BaseTestCase):

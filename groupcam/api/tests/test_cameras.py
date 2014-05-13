@@ -31,6 +31,13 @@ class TestCameras(BaseAPITestCase):
 
         _user_logged_in = (lambda: camera['nickname'] in
                            self._get_server_nicknames())
+
+        def _user_logged_in():
+            users = manager.src_client.users.values()
+            nicknames = [str(user.nickname, 'utf8') for user in users]
+            result = camera['nickname'] in nicknames
+            return result
+
         self.wait_until(_user_logged_in)
 
     @pytest.mark.xfail
