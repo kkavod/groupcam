@@ -12,6 +12,17 @@ from groupcam.api.schemas import Preset
 
 
 class BaseHandler(tornado.web.RequestHandler):
+    def validate(self, schema_class):
+        data = tornado.escape.json_decode(self.request.body)
+        try:
+            clean_data = schema_class().deserialize(data)
+        except colander.Invalid as e:
+            self.set_status(400)
+            result = dict(errors=e.asdict(), ok=False)
+            self.finish(result)
+        else:
+            return clean_data
+
     def _filter_keys(self, instance, allowed_keys):
         """
         """
@@ -99,13 +110,7 @@ class PresetHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def put(self, camera_id, number):
-        preset = tornado.escape.json_decode(self.request.body)
-        result = {}
-        try:
-            clean_preset = Preset().deserialize(preset)
-        except colander.Invalid as e:
-            self.set_status(400)
-            result = dict(errors=e.asdict(), ok=False)
-        else:
+        clean_preset = self.validate()
+        if clean_preset is not None:
             result = {'ok': True}
-        self.finish(result)
+            self.finish(result)

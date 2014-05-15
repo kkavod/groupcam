@@ -22,15 +22,21 @@ class BaseTestCase(AsyncHTTPTestCase):
         return self.application
 
     def wait_until(self, condition, timeout=None):
-        self._condition = condition
-        self.io_loop.add_callback(self._waiter)
+        """Waits until condition, raises exception if timeout has passed
+
+        @param condition: a function returning boolean
+        @param timeout: timeout in seconds
+        """
+
+        self._wait_condition = condition
+        self.io_loop.add_callback(self._wait_callback)
         self.wait(timeout=timeout)
 
-    def _waiter(self):
-        if self._condition():
+    def _wait_callback(self):
+        if self._wait_condition():
             self.stop()
         else:
-            self.io_loop.add_callback(self._waiter)
+            self.io_loop.add_callback(self._wait_callback)
 
 
 class BaseAPITestCase(BaseTestCase):

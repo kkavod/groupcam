@@ -18,4 +18,3 @@ class Camera(colander.MappingSchema):
     title = colander.SchemaNode(colander.String())
     nickname = colander.SchemaNode(colander.String())
     regexp = colander.SchemaNode(colander.String())
-    presets = Presets()
