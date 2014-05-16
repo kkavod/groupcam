@@ -8,57 +8,76 @@ import tornado.gen
 
 from groupcam.db import db
 from groupcam.client import manager
-from groupcam.api.schemas import Preset
+from groupcam.api.schemas import Camera, Preset
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    def validate(self, schema_class):
+    schema = None
+
+    def prepare(self):
+        """Runs data validation on POST and PUT.
+        """
+
+        if self.request.method in ('POST', 'PUT'):
+            self._validate_json()
+
+    def finish(self, chunk=None):
+        if self.request.method in ('POST', 'PUT'):
+            import pdb; pdb.set_trace()
+            chunk = self.result
+        super().finish(chunk)
+
+    def filter_keys(self, obj, allowed_keys):
+        """Removes all the unnecessary keys from the given object.
+
+        @param obj: a dict or a list of dicts
+        @param allowed_keys: keys to preserve
+        @return: filtered object
+        """
+
+        if isinstance(obj, dict):
+            result = {key: obj.get(key)
+                      for key in allowed_keys}
+        elif isinstance(obj, list):
+            result = [self.filter_keys(item, allowed_keys)
+                      for item in obj]
+        else:
+            result = obj
+        return result
+
+    def _validate_json(self):
+        """Validates JSON body within the given Colander schema.
+        """
+
         data = tornado.escape.json_decode(self.request.body)
         try:
-            clean_data = schema_class().deserialize(data)
+            self.clean_data = self.schema().deserialize(data)
         except colander.Invalid as e:
             self.set_status(400)
-            result = dict(errors=e.asdict(), ok=False)
-            self.finish(result)
+            self.result = dict(errors=e.asdict(), ok=False)
+            self.finish(self.result)
         else:
-            return clean_data
-
-    def _filter_keys(self, instance, allowed_keys):
-        """
-        """
-
-        if isinstance(instance, dict):
-            result = {
-                key: instance.get(key)
-                for key in allowed_keys
-            }
-        elif isinstance(instance, list):
-            result = [
-                self._filter_keys(item, allowed_keys)
-                for item in instance
-            ]
-        else:
-            result = instance
-        return result
+            status = 201 if self.request.method == 'POST' else 200
+            self.set_status(status)
+            self.result = {'ok': True}
 
 
 class CamerasHandler(BaseHandler):
+    schema = Camera
+
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self):
         cursor = db.async.cameras.find(length=255)
         cameras = yield motor.Op(cursor.to_list)
         keys = ['id', 'title', 'nickname', 'frame_url']
-        result = dict(cameras=self._filter_keys(cameras, keys), ok=True)
+        result = dict(cameras=self.filter_keys(cameras, keys), ok=True)
         self.finish(result)
 
     @tornado.web.asynchronous
     @tornado.gen.engine
     def post(self):
-        camera = tornado.escape.json_decode(self.request.body)
-        yield manager.add(camera)
-        self.set_status(201)
-        self.finish({'ok': True})
+        yield manager.add(self.clean_data)
 
 
 class UsersHandler(BaseHandler):
@@ -77,6 +96,8 @@ class UsersHandler(BaseHandler):
 
 
 class PresetsHandler(BaseHandler):
+    schema = Preset
+
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self, camera_id):
@@ -91,26 +112,15 @@ class PresetsHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def post(self, camera_id):
-        preset = tornado.escape.json_decode(self.request.body)
-        result = {}
-        try:
-            clean_preset = Preset().deserialize(preset)
-        except colander.Invalid as e:
-            self.set_status(400)
-            result = dict(errors=e.asdict(), ok=False)
-        else:
-            upd_args = {'id': camera_id}, {'$push': {'presets': clean_preset}}
-            yield motor.Op(db.async.cameras.update, *upd_args)
-            self.set_status(201)
-            result = {'ok': True}
-        self.finish(result)
+        upd_args = {'id': camera_id}, {'$push': {'presets': self.clean_data}}
+        yield motor.Op(db.async.cameras.update, *upd_args)
 
 
 class PresetHandler(BaseHandler):
+    schema = Preset
+
     @tornado.web.asynchronous
     @tornado.gen.engine
     def put(self, camera_id, number):
-        clean_preset = self.validate()
-        if clean_preset is not None:
-            result = {'ok': True}
-            self.finish(result)
+        # Process with self.clean_data
+        pass
