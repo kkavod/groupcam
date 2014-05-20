@@ -35,13 +35,12 @@ class TestCameras(BaseAPITestCase):
                            self._get_server_nicknames())
         self.wait_until(_user_logged_in)
 
-    @pytest.mark.xfail
     def test_post_invalid_camera(self):
-        camera = dict(CameraFactory(), id=0)
+        camera = dict(CameraFactory(), id=0, nickname=None)
         response = self.post(self._url, camera)
         assert response.code == 400
         assert 'id' in response.json['errors']
-        assert 'presets' in response.json['errors']
+        assert 'nickname' in response.json['errors']
 
     def _get_server_nicknames(self):
         users = manager.src_client.users.values()

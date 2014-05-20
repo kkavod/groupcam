@@ -21,12 +21,6 @@ class BaseHandler(tornado.web.RequestHandler):
         if self.request.method in ('POST', 'PUT'):
             self._validate_json()
 
-    def finish(self, chunk=None):
-        if self.request.method in ('POST', 'PUT'):
-            import pdb; pdb.set_trace()
-            chunk = self.result
-        super().finish(chunk)
-
     def filter_keys(self, obj, allowed_keys):
         """Removes all the unnecessary keys from the given object.
 
@@ -78,6 +72,7 @@ class CamerasHandler(BaseHandler):
     @tornado.gen.engine
     def post(self):
         yield manager.add(self.clean_data)
+        self.finish(self.result)
 
 
 class UsersHandler(BaseHandler):
@@ -114,6 +109,7 @@ class PresetsHandler(BaseHandler):
     def post(self, camera_id):
         upd_args = {'id': camera_id}, {'$push': {'presets': self.clean_data}}
         yield motor.Op(db.async.cameras.update, *upd_args)
+        self.finish(self.result)
 
 
 class PresetHandler(BaseHandler):
@@ -122,5 +118,4 @@ class PresetHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def put(self, camera_id, number):
-        # Process with self.clean_data
-        pass
+        self.finish(self.result)
