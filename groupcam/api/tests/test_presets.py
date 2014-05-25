@@ -26,6 +26,7 @@ class TestPresets(BaseAPITestCase):
         preset = PresetFactory()
         resp = self.post(self._url, preset)
         assert resp.code == 201
+        assert resp.json['number'] == len(self._camera['presets']) + 1
         camera = db.sync.cameras.find_one({'id': self._camera['id']})
         assert preset in camera['presets']
 
@@ -43,13 +44,16 @@ class TestPreset(BaseAPITestCase):
         cls._camera = CameraFactory()
         db.sync.cameras.insert(cls._camera)
         cls._preset = cls._camera['presets'][0]
-        cls._url = cls.application.reverse_url(
-            'preset', cls._camera['id'], cls._preset['number'])
+        cls._url = cls.application.reverse_url('preset', cls._camera['id'], 1)
 
     def test_update_preset(self):
-        pass
+        preset = PresetFactory()
+        resp = self.put(self._url, preset)
+        assert resp.code == 200
+        camera = db.sync.cameras.find_one({'id': self._camera['id']})
+        assert camera['presets'][0] == preset
 
     def test_update_preset_improperly(self):
-        invalid_preset = dict(self._preset, number="invalid")
+        invalid_preset = dict(self._preset, layout="invalid")
         resp = self.put(self._url, invalid_preset)
         assert resp.code == 400

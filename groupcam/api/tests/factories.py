@@ -56,7 +56,6 @@ class Counter(Factory):
 
 class PresetFactory(Factory):
     template = {
-        'number': Counter(),
         'name': "Preset {counter}",
         'type': RandomChoice(['5+1', '3x3', '4x4']),
         'layout': {

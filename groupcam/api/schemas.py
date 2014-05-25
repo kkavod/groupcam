@@ -2,7 +2,6 @@ import colander
 
 
 class Preset(colander.MappingSchema):
-    number = colander.SchemaNode(colander.Int(), validator=colander.Range(1))
     name = colander.SchemaNode(colander.String())
     type = colander.SchemaNode(colander.String())
     layout = colander.SchemaNode(colander.Mapping(unknown='preserve'))

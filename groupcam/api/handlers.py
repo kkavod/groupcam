@@ -109,7 +109,9 @@ class PresetsHandler(BaseHandler):
     def post(self, camera_id):
         upd_args = {'id': camera_id}, {'$push': {'presets': self.clean_data}}
         yield motor.Op(db.async.cameras.update, *upd_args)
-        self.finish(self.result)
+        camera = yield motor.Op(db.async.cameras.find_one, {'id': camera_id})
+        number = camera['presets'].index(self.clean_data) + 1
+        self.finish(dict(number=number, ok=True))
 
 
 class PresetHandler(BaseHandler):
