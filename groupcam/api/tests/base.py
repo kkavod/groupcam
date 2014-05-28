@@ -2,6 +2,7 @@ import tornado.ioloop
 from tornado.testing import AsyncHTTPTestCase
 from tornado.escape import json_decode, json_encode
 
+from groupcam.db import db
 from groupcam.api.main import Application
 
 
@@ -31,6 +32,10 @@ class BaseTestCase(AsyncHTTPTestCase):
         self._wait_condition = condition
         self.io_loop.add_callback(self._wait_callback)
         self.wait(timeout=timeout)
+
+    def get_camera(self, camera_id):
+        camera = db.sync.cameras.find_one({'id': camera_id})
+        return camera
 
     def _wait_callback(self):
         if self._wait_condition():

@@ -39,6 +39,11 @@ class BaseHandler(tornado.web.RequestHandler):
             result = obj
         return result
 
+    @tornado.gen.coroutine
+    def get_camera(self, camera_id):
+        camera = yield motor.Op(db.async.cameras.find_one, {'id': camera_id})
+        return camera
+
     def _validate_json(self):
         """Validates JSON body within the given Colander schema.
         """
@@ -96,7 +101,7 @@ class PresetsHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def get(self, camera_id):
-        camera = yield motor.Op(db.async.cameras.find_one, {'id': camera_id})
+        camera = yield self.get_camera(camera_id)
         if camera is None:
             result = None
             self.set_status(204)
@@ -109,7 +114,7 @@ class PresetsHandler(BaseHandler):
     def post(self, camera_id):
         upd_args = {'id': camera_id}, {'$push': {'presets': self.clean_data}}
         yield motor.Op(db.async.cameras.update, *upd_args)
-        camera = yield motor.Op(db.async.cameras.find_one, {'id': camera_id})
+        camera = yield self.get_camera(camera_id)
         number = camera['presets'].index(self.clean_data) + 1
         self.finish(dict(number=number, ok=True))
 
@@ -121,3 +126,14 @@ class PresetHandler(BaseHandler):
     @tornado.gen.engine
     def put(self, camera_id, number):
         self.finish(self.result)
+
+    @tornado.web.asynchronous
+    @tornado.gen.engine
+    def delete(self, camera_id, number):
+        index = int(number) - 1
+        unset = {'$unset': {'presets.{}'.format(index): 1}}
+        pull = {'$pull': {'presets': None}}
+        for operation in [unset, pull]:
+            yield motor.Op(db.async.cameras.update,
+                           {'id': camera_id}, operation)
+        self.finish(dict(ok=True))
