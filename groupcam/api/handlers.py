@@ -19,7 +19,8 @@ class BaseHandler(tornado.web.RequestHandler):
         """
 
         validated = self.validate_resource(**self.path_kwargs)
-        if validated and self.request.method in ('POST', 'PUT'):
+        json_required = self.request.method in ('POST', 'PUT')
+        if validated and json_required and self.schema is not None:
             self._validate_json()
 
     def validate_resource(self, **kwargs):
@@ -128,7 +129,21 @@ class PresetsHandler(BaseHandler):
         self.finish(dict(number=number, ok=True))
 
 
-class PresetHandler(BaseHandler):
+class BasePresetHandler(BaseHandler):
+    @tornado.gen.coroutine
+    def validate_resource(self, camera_id, number):
+        camera = yield self.get_camera(camera_id)
+        if len(camera['presets']) >= int(number):
+            validated = True
+        else:
+            validated = False
+            self.set_status(404)
+            result = dict(reason="Invalid preset number", ok=False)
+            self.finish(result)
+        return validated
+
+
+class PresetHandler(BasePresetHandler):
     schema = Preset
 
     @tornado.web.asynchronous
@@ -150,18 +165,13 @@ class PresetHandler(BaseHandler):
                            {'id': camera_id}, operation)
         self.finish(dict(ok=True))
 
-    @tornado.gen.coroutine
-    def validate_resource(self, camera_id, number):
-        camera = yield self.get_camera(camera_id)
-        if len(camera['presets']) >= int(number):
-            validated = True
-        else:
-            validated = False
-            self.set_status(404)
-            result = dict(reason="Invalid preset number", ok=False)
-            self.finish(result)
-        return validated
-
     def _get_indexed_field_name(self, number):
         index = int(number) - 1
         return 'presets.{}'.format(index)
+
+
+class ActivatePresetHandler(BasePresetHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.engine
+    def put(self, camera_id, number):
+        self.finish()

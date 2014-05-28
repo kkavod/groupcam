@@ -37,13 +37,19 @@ class TestPresets(BaseAPITestCase):
         assert list(resp.json['errors']) == ['name']
 
 
-class TestPreset(BaseAPITestCase):
+class CreatePresetMixture:
+    route = None
+
     def setup_method(self, meth):
         self._camera = CameraFactory()
         db.sync.cameras.insert(self._camera)
         self._preset = self._camera['presets'][0]
         self._url = self.application.reverse_url(
-            'preset', self._camera['id'], 1)
+            self.route, self._camera['id'], 1)
+
+
+class TestPreset(CreatePresetMixture, BaseAPITestCase):
+    route = 'preset'
 
     def test_update_preset(self):
         preset = PresetFactory()
@@ -65,10 +71,17 @@ class TestPreset(BaseAPITestCase):
         assert camera['presets'] == self._camera['presets'][1:]
 
     def test_delete_invalid_preset(self):
+        preset_url = self._get_invalid_preset_url()
+        resp = self.delete(preset_url)
+        self._verify_invalid_response(resp)
+
+    def _get_invalid_preset_url(self):
         invalid_number = len(self._camera['presets']) + 1
         preset_url = self.application.reverse_url(
             'preset', self._camera['id'], invalid_number)
-        resp = self.delete(preset_url)
+        return preset_url
+
+    def _verify_invalid_response(self, resp):
         assert resp.code == 404
         assert not resp.json['ok']
         self._verify_camera_is_unchanged()
@@ -76,3 +89,15 @@ class TestPreset(BaseAPITestCase):
     def _verify_camera_is_unchanged(self):
         camera = self.get_camera(self._camera['id'])
         assert camera == self._camera
+
+
+class TestActivatePreset(CreatePresetMixture, BaseAPITestCase):
+    route = 'activate_preset'
+
+    def test_activate_preset(self):
+        resp = self.put(self._url, {})
+        assert resp.code == 200
+        camera = self.get_camera(self._camera['id'])
+        assert camera['presets'][0]['active']
+        presets = (preset['active'] for preset in camera['presets'][1:])
+        assert not any(presets)
