@@ -18,8 +18,17 @@ class BaseHandler(tornado.web.RequestHandler):
         """Runs data validation on POST and PUT.
         """
 
-        if self.request.method in ('POST', 'PUT'):
+        validated = self.validate_resource(**self.path_kwargs)
+        if validated and self.request.method in ('POST', 'PUT'):
             self._validate_json()
+
+    def validate_resource(self, **kwargs):
+        """Override this method to make resource path checks before calling
+        HTTP method handlers.
+
+        @return: True if the resource is valid
+        """
+        return True
 
     def filter_keys(self, obj, allowed_keys):
         """Removes all the unnecessary keys from the given object.
@@ -125,15 +134,34 @@ class PresetHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def put(self, camera_id, number):
+        field_name = self._get_indexed_field_name(number)
+        operation = {'$set': {field_name: self.clean_data}}
+        yield motor.Op(db.async.cameras.update, {'id': camera_id}, operation)
         self.finish(self.result)
 
     @tornado.web.asynchronous
     @tornado.gen.engine
     def delete(self, camera_id, number):
-        index = int(number) - 1
-        unset = {'$unset': {'presets.{}'.format(index): 1}}
+        field_name = self._get_indexed_field_name(number)
+        unset = {'$unset': {field_name: 1}}
         pull = {'$pull': {'presets': None}}
         for operation in [unset, pull]:
             yield motor.Op(db.async.cameras.update,
                            {'id': camera_id}, operation)
         self.finish(dict(ok=True))
+
+    @tornado.gen.coroutine
+    def validate_resource(self, camera_id, number):
+        camera = yield self.get_camera(camera_id)
+        if len(camera['presets']) >= int(number):
+            validated = True
+        else:
+            validated = False
+            self.set_status(404)
+            result = dict(reason="Invalid preset number", ok=False)
+            self.finish(result)
+        return validated
+
+    def _get_indexed_field_name(self, number):
+        index = int(number) - 1
+        return 'presets.{}'.format(index)

@@ -56,9 +56,23 @@ class TestPreset(BaseAPITestCase):
         invalid_preset = dict(self._preset, layout="invalid")
         resp = self.put(self._url, invalid_preset)
         assert resp.code == 400
+        self._verify_camera_is_unchanged()
 
     def test_delete_preset(self):
         resp = self.delete(self._url)
         assert resp.code == 200
         camera = self.get_camera(self._camera['id'])
         assert camera['presets'] == self._camera['presets'][1:]
+
+    def test_delete_invalid_preset(self):
+        invalid_number = len(self._camera['presets']) + 1
+        preset_url = self.application.reverse_url(
+            'preset', self._camera['id'], invalid_number)
+        resp = self.delete(preset_url)
+        assert resp.code == 404
+        assert not resp.json['ok']
+        self._verify_camera_is_unchanged()
+
+    def _verify_camera_is_unchanged(self):
+        camera = self.get_camera(self._camera['id'])
+        assert camera == self._camera
