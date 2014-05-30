@@ -99,5 +99,5 @@ class TestActivatePreset(CreatePresetMixture, BaseAPITestCase):
         assert resp.code == 200
         camera = self.get_camera(self._camera['id'])
         assert camera['presets'][0]['active']
-        presets = (preset['active'] for preset in camera['presets'][1:])
-        assert not any(presets)
+        flags = (preset['active'] for preset in camera['presets'][1:])
+        assert not any(flags)

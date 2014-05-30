@@ -174,4 +174,9 @@ class ActivatePresetHandler(BasePresetHandler):
     @tornado.web.asynchronous
     @tornado.gen.engine
     def put(self, camera_id, number):
+        camera = yield self.get_camera(camera_id)
+        presets = [dict(preset, active=(index + 1 == int(number)))
+                   for index, preset in enumerate(camera['presets'])]
+        operation = {'$set': {'presets': presets}}
+        yield motor.Op(db.async.cameras.update, {'id': camera_id}, operation)
         self.finish()
