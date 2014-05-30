@@ -50,6 +50,9 @@ class ClientManager:
     def remove(self, id):
         pass
 
+    def get_camera(self, camera_id):
+        pass
+
     def _parse_device_intervals(self):
         range_from, range_to = self._find_device_ranges()
         intervals = config['camera']['device_intervals']
@@ -100,7 +103,10 @@ class SourceClient(BaseClient):
     def __init__(self, cameras):
         super().__init__(config['server']['source'])
         self._users = {}
-        self._cameras = [Camera(camera) for camera in cameras]
+        self._cameras = {
+            camera['id']: Camera(camera)
+            for camera in cameras
+        }
 
     def on_command_user_logged_in(self, message):
         user_id = message.first_param
@@ -120,7 +126,7 @@ class SourceClient(BaseClient):
         user.update(message.second_param)
         assert user.img_width > 0
         assert user.img_height > 0
-        for camera in self._cameras:
+        for camera in self._cameras.values():
             camera.update_if_has_user(user.user_id)
 
     def on_command_user_left(self, message):
@@ -136,7 +142,7 @@ class SourceClient(BaseClient):
             profile = self._tt4.get_user(user_id)
             nickname = str(profile.nickname, 'utf8')
             cameras = [
-                camera for camera in self._cameras
+                camera for camera in self._cameras.values()
                 if camera.nick_regexp.match(nickname)
             ]
         return cameras
