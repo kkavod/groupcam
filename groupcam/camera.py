@@ -1,21 +1,16 @@
 from datetime import datetime
-
 import re
-import operator
-
 import os
 import fcntl
 import ctypes
 
 import v4l2
-
 import cairo
-
 import numpy
-from math import sqrt
 
 from groupcam.conf import config
 from groupcam.core import options, fail_with_error
+from groupcam.preset import preset_factory
 
 
 class Camera:
@@ -27,7 +22,7 @@ class Camera:
         self._load_settings()
         self._init_device()
         self._init_surface()
-        self._update()
+        self._set_initial_preset()
 
     def add_user(self, user):
         self._users[user.user_id] = user
@@ -40,6 +35,10 @@ class Camera:
     def update_if_has_user(self, user_id):
         if user_id in self._users:
             self._update()
+
+    def activate_preset(self, preset):
+        self._preset = preset_factory(preset)
+        self._update()
 
     def _get_v4l2_lib(self):
         try:
@@ -130,43 +129,10 @@ class Camera:
     def _draw_users(self):
         alive_users = [user for user in self._users.values()
                        if self._user_is_alive(user)]
-
-        display_width = self._width
-        display_height = self._height - self._title_height - self._padding * 2
-
-        aspect_ratio = self._width / self._height
-        display_area = self._width * display_height
-        pixels_total = display_area / (.5 + len(alive_users))
-
-        user_width = round(sqrt(pixels_total * aspect_ratio))
-        user_height = round(sqrt(pixels_total / aspect_ratio))
-
-        cols_number = round(display_width / user_width)
-        rows_number = round(display_height / user_height)
-
-        if cols_number * user_width > display_width:
-            user_width = display_width / cols_number
-            user_height = user_width / aspect_ratio
-
-        if rows_number * user_height > display_height:
-            user_height = display_height / rows_number
-            user_width = user_height * aspect_ratio
-
-        horizontal_middle = (display_width + user_width * cols_number) / 2
-        vertical_middle = (display_height + user_height * rows_number) / 2
-        left = self._width - horizontal_middle
-        top = self._height - vertical_middle - self._padding
-
-        users = sorted(alive_users, key=operator.attrgetter('user_id'))
-        for index, user in enumerate(users):
-            x = left + (index % cols_number * user_width)
-            y = top + int(index / cols_number) * user_height + self._padding
-            display_rect = (x, y,
-                            user_width - self._padding,
-                            user_height - self._padding)
-
+        display_rects = self._preset.get_user_display_rects(alive_users)
+        for user, display_rect in display_rects:
             self._draw_user(user, display_rect)
-        return bool(users)
+        return bool(alive_users)
 
     def _draw_user(self, user, display_rect):
         self._context.save()
@@ -212,6 +178,15 @@ class Camera:
         self._context.move_to(left, top)
         self._context.set_source_rgb(*color)
         self._context.show_text(text)
+
+    def _set_initial_preset(self):
+        active_presets = [preset for preset in self._camera['presets']
+                          if preset['active']]
+        if active_presets:
+            active_preset = active_presets[0]
+        else:
+            active_preset = dict(type='auto', layout={})
+        self.activate_preset(active_preset)
 
     def __del__(self):
         self._lib.v4l2_close(self._device_fd)
