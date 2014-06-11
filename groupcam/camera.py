@@ -37,7 +37,7 @@ class Camera:
             self._update()
 
     def activate_preset(self, preset):
-        self._preset = preset_factory(preset)
+        self._preset = preset_factory(self, preset)
         self._update()
 
     def _get_v4l2_lib(self):
@@ -48,12 +48,17 @@ class Camera:
         return lib
 
     def _load_settings(self):
-        self._width = config['camera']['width']
-        self._height = config['camera']['height']
         self._title_padding = config['camera']['title_padding'] / 100.
-        self._title_height = (self._height *
-                              config['camera']['title_height'] / 100.)
-        self._padding = config['camera']['user_padding'] / 100. * self._height
+        self.width = config['camera']['width']
+        self.height = config['camera']['height']
+        self.aspect_ratio = self.width / self.height
+        self.title_height = (self.height *
+                             config['camera']['title_height'] / 100.)
+        self.padding = config['camera']['user_padding'] / 100. * self.height
+        self.display_width = self.width
+        self.display_height = (self.height
+                               - self.title_height
+                               - self.padding * 2)
         self.nick_regexp = re.compile(self._camera['regexp'], re.IGNORECASE)
 
     def _init_device(self):
@@ -68,10 +73,10 @@ class Camera:
 
     def _init_surface(self):
         self._data = numpy.empty(
-            self._width * self._height, dtype=numpy.int32)
+            self.width * self.height, dtype=numpy.int32)
         self._surface = cairo.ImageSurface.create_for_data(
             self._data, cairo.FORMAT_ARGB32,
-            self._width, self._height, self._width * 4)
+            self.width, self.height, self.width * 4)
         self._context = cairo.Context(self._surface)
 
     def _get_device_capability(self):
@@ -86,8 +91,8 @@ class Camera:
         fmt = v4l2.v4l2_format()
         fmt.type = v4l2.V4L2_BUF_TYPE_VIDEO_OUTPUT
         fmt.fmt.pix.pixelformat = v4l2.V4L2_PIX_FMT_BGR32
-        fmt.fmt.pix.width = self._width
-        fmt.fmt.pix.height = self._height
+        fmt.fmt.pix.width = self.width
+        fmt.fmt.pix.height = self.height
         fmt.fmt.pix.field = v4l2.V4L2_FIELD_NONE
         fmt.fmt.pix.bytesperline = fmt.fmt.pix.width * 4
         fmt.fmt.pix.sizeimage = fmt.fmt.pix.width * fmt.fmt.pix.height * 4
@@ -104,26 +109,26 @@ class Camera:
 
     def _draw_title(self):
         self._context.set_source_rgb(0, 0, 1.)
-        self._context.rectangle(0, 0, self._width, self._title_height)
+        self._context.rectangle(0, 0, self.width, self.title_height)
         self._context.fill()
 
-        horizontal_padding = self._width * self._title_padding
-        vertical_padding = self._title_height * self._title_padding
+        horizontal_padding = self.width * self._title_padding
+        vertical_padding = self.title_height * self._title_padding
         title_rect = (horizontal_padding, vertical_padding,
-                      self._width - horizontal_padding * 2,
-                      self._title_height - vertical_padding * 2)
+                      self.width - horizontal_padding * 2,
+                      self.title_height - vertical_padding * 2)
         self._fit_text_to_rect(self._camera['title'], title_rect)
 
     def _draw_background(self):
         self._context.set_source_rgb(0, 0, 0)
-        self._context.rectangle(0, self._title_height,
-                                self._width, self._height)
+        self._context.rectangle(0, self.title_height,
+                                self.width, self.height)
         self._context.fill()
 
     def _draw_no_users(self):
         message = config['camera']['no_users_message']
-        display_rect = (self._width * 0.1, self._title_height,
-                        self._width * 0.8, self._height - self._title_height)
+        display_rect = (self.width * 0.1, self.title_height,
+                        self.width * 0.8, self.height - self.title_height)
         self._fit_text_to_rect(message, display_rect)
 
     def _draw_users(self):
@@ -148,7 +153,7 @@ class Camera:
             self._draw_user_labels(left, top, str(user.user_id))
 
     def _draw_user_labels(self, left, top, label):
-        font_size = self._height * 0.05
+        font_size = self.height * 0.05
         self._context.set_font_size(font_size)
         self._context.move_to(left, top + font_size)
         self._context.set_source_rgb(0.4, 1., 0.4)
@@ -165,11 +170,11 @@ class Camera:
     def _fit_text_to_rect(self, text, rect, color=(1., 1., 1.)):
         rect_left, rect_top, rect_width, rect_height = rect
 
-        self._context.set_font_size(self._height)
+        self._context.set_font_size(self.height)
         text_width, text_height = self._context.text_extents(text)[2:4]
 
         factor = min(rect_width / text_width, rect_height / text_height)
-        font_size = self._height * factor
+        font_size = self.height * factor
         self._context.set_font_size(font_size)
 
         left = rect_left + rect_width - (rect_width + text_width * factor) / 2
