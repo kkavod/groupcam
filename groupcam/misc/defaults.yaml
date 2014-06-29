@@ -1,26 +1,36 @@
 # Groupcam config defaults
 
+database:
+    uri: 
+    name: groupcam
+
+http:
+    #host: localhost
+    port_base: 5000
+    #workers: 4
+
 camera:
-    title: Groupcam Demo
+    # title: Groupcam Demo
     title_padding: 10
-    nickname_regexp: .*scandinavia.*
+    # nickname_regexp: .*scandinavia.*
     width: 640
     height: 480
     title_height: 16
     user_padding: 0.5
-    device: /dev/video1
     user_timeout: 10
     no_users_message: No cameras available
+    device_intervals: 1-
+    device_name_format: /dev/video{number}
     quality: 50
     fps: 10
 
-servers:
+server:
     source:
         host: unity.kbb1.com
         tcp_port: 10333
         udp_port: 10333
         server_password: malhut
-        nickname: Groupcam (In)
+        nickname: Groupcam
         channel_path: /unity/scandinavian
         channel_password:
         user_name:
@@ -31,7 +41,7 @@ servers:
         tcp_port: 10333
         udp_port: 10333
         server_password: malhut
-        nickname: Groupcam (Out)
+        # nickname: Groupcam (Out)
         channel_path: /unity/scandinavian
         channel_password:
         user_name:

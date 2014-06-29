@@ -1,7 +1,6 @@
 from time import sleep
 
-from groupcam.conf import config
-from groupcam.core import logger, get_child_logger, options
+from groupcam.core import get_child_logger, options
 from groupcam.tt4 import TT4, consts
 
 
@@ -13,7 +12,6 @@ COMPLETE_COMMANDS = {
 
 
 class BaseClient:
-    _config_name = None
     _subscription = (
         consts.SUBSCRIBE_NONE |
         consts.SUBSCRIBE_USER_MSG |
@@ -24,23 +22,27 @@ class BaseClient:
         consts.SUBSCRIBE_DESKTOP
     )
 
-    def __init__(self):
-        self._logger = get_child_logger(self._config_name)
-        self._server_config = config['servers'][self._config_name]
-        self._tt4 = TT4.singleton(self._config_name)
+    def __init__(self, server_config):
+        self._stopped = False
+        logger_name = "{}/{}".format(self.__class__.__name__,
+                                     server_config['nickname'])
+        self._logger = get_child_logger(logger_name)
+        self._server_config = server_config
+        self._tt4 = TT4(server_config)
         self._user_id = None
         self._status_mode = consts.STATUS_AVAILABLE
         self._commands = {}
+        self.users = {}
         self._tt4.connect()
 
+    def stop(self):
+        self._stopped = True
+
     def run(self):
-        while True:
+        while not self._stopped:
             message = self._tt4.get_message()
             if message is not None:
                 self._process_message(message)
-            else:
-                if not self._tt4.is_connected():
-                    self.on_connection_lost()
 
     def on_connection_success(self, message):
         command_id = self._tt4.login()
@@ -90,8 +92,12 @@ class BaseClient:
     def on_command_user_logged_out(self, message):
         pass
 
+    def on_command_user_joined(self, message):
+        user = self._tt4.get_user(message.first_param)
+        self.users[message.first_param] = user
+
     def on_command_user_left(self, message):
-        pass
+        del self.users[message.first_param]
 
     def on_complete_join_channel(self):
         self._logger.info("Joined the channel")
@@ -122,6 +128,8 @@ class BaseClient:
             self.on_command_error(message)
         elif code == consts.WM_TEAMTALK_CMD_USER_LOGGEDOUT:
             self.on_command_user_logged_out(message)
+        elif code == consts.WM_TEAMTALK_CMD_USER_JOINED:
+            self.on_command_user_joined(message)
         elif code == consts.WM_TEAMTALK_CMD_USER_LEFT:
             self.on_command_user_left(message)
         else:
@@ -131,7 +139,7 @@ class BaseClient:
         self._tt4.change_status(self._status_mode)
 
         channel_path = self._server_config['channel_path']
-        logger.info("Joining the channel {}...".format(channel_path))
+        self._logger.info("Joining the channel {}...".format(channel_path))
         channel_id = self._tt4.get_channel_id_from_path(channel_path)
 
         channel_password = self._server_config['channel_password']

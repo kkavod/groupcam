@@ -3,17 +3,14 @@ import cairo
 
 from datetime import datetime
 
-from groupcam.tt4 import TT4
-
 
 class User:
-    def __init__(self, user_id):
+    def __init__(self, user_id, tt4):
         self.user_id = user_id
         self.surface = None
         self.img_width = self.img_height = 0
-        self.display_rect = (0, 0, 0, 0)
-        self.updated = datetime.now()
-        self._tt4 = TT4.get_instance('source')
+        self.updated = None
+        self._tt4 = tt4
         self._data = None
 
     def update(self, frames_count=1):

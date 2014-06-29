@@ -1,4 +1,5 @@
 import os
+import platform
 
 import ctypes
 
@@ -15,30 +16,10 @@ class TT4:
     """TT4 API wrapper.
     """
 
-    _all_instances = {}
-
-    @classmethod
-    def singleton(cls, config_name):
-        if config_name in cls._all_instances:
-            result = cls._all_instances[config_name]
-        else:
-            result = TT4(config['servers'][config_name])
-            cls._all_instances[config_name] = result
-        return result
-
-    @classmethod
-    def get_instance(cls, config_name):
-        return cls._all_instances.get(config_name)
-
     def __init__(self, server_config):
         self._server_config = server_config
         self._library = self._get_library()
         self._instance = self._library.TT_InitTeamTalkPoll()
-
-    def _get_library(self):
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        library_path = os.path.join(base_path, 'misc/libTeamTalk4.so')
-        return ctypes.cdll.LoadLibrary(library_path)
 
     def connect(self):
         flags = self._library.TT_GetFlags(self._instance)
@@ -112,13 +93,13 @@ class TT4:
 
     def get_user_video_frame(self, user_id, data, bytes_number, video_format):
         format_ptr = ctypes.pointer(video_format)
-        data_ptr = data.ctypes.data
+        data_ptr = ctypes.c_void_p(data.ctypes.data)
         ret_code = self._library.TT_GetUserVideoFrame(
             self._instance, user_id, data_ptr, bytes_number, format_ptr)
         return bool(ret_code)
 
-    def start_broadcast(self):
-        device_id = self._find_device()
+    def start_broadcast(self, device_path):
+        device_id = self._find_device(device_path)
         self._init_capture_device(device_id)
         self._library.TT_EnableTransmission(self._instance,
                                             consts.TRANSMIT_VIDEO, True)
@@ -130,15 +111,26 @@ class TT4:
     def disconnect(self):
         self._library.TT_Disconnect(self._instance)
 
-    def _find_device(self):
+    def _get_library(self):
+        module_dir = os.path.dirname(os.path.abspath(__file__))
+        base_path = os.path.dirname(module_dir)
+        arch = 'amd64' if platform.machine() == 'x86_64' else 'i386'
+        lib_rel_path = 'misc/libTeamTalk4_{}.so'.format(arch)
+        lib_abs_path = os.path.join(base_path, lib_rel_path)
+        library = ctypes.cdll.LoadLibrary(lib_abs_path)
+        return library
+
+    def _find_device(self, device_path):
+        # TODO: fix me!
+        return device_path + ',0'
+
         device_id = None
 
-        device_number = ctypes.c_uint32()
+        device_number = ctypes.c_uint32(3)
         device_number_ptr = ctypes.pointer(device_number)
 
         self._library.TT_GetVideoCaptureDevices(self._instance,
                                                 None, device_number_ptr)
-        device_path = config['camera']['device']
 
         if device_number.value > 0:
             video_devices = (structs.VideoCaptureDevice *
@@ -153,7 +145,6 @@ class TT4:
 
         if device_id is None:
             fail_with_error("Device {} not found".format(device_path))
-
         return device_id
 
     def _init_capture_device(self, device_id):

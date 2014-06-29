@@ -1,10 +1,8 @@
 import collections
 
-import os
-
 import yaml
 
-from groupcam.core import fail_with_error
+from groupcam.core import fail_with_error, get_project_path
 
 
 # Global configuration dictionary
@@ -25,8 +23,7 @@ def load_config(config_path=None):
 
 
 def _load_defaults():
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    defaults_path = os.path.join(base_path, 'misc/defaults.yaml')
+    defaults_path = get_project_path('misc/defaults.yaml')
     with open(defaults_path) as defaults_file:
         defaults = yaml.load(defaults_file)
     return defaults

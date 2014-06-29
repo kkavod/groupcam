@@ -1,3 +1,4 @@
+import os
 import sys
 
 import signal
@@ -20,18 +21,20 @@ options = argparse.Namespace()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('groupcam')
 
-argparser = argparse.ArgumentParser(description=__description__)
-
 # Exit function to call on failure
 _exit_func = lambda: sys.exit(-1)
 
 
-def initialize():
+def initialize(testing=False):
     """Initializes the core.
 
     @param config_path: config path string
     """
+
     from groupcam.conf import load_config
+    from groupcam.db import init_database
+
+    argparser = argparse.ArgumentParser(description=__description__)
 
     # Adding common options to argparser
 
@@ -50,7 +53,7 @@ def initialize():
     argparser.add_argument('-c', '--config', dest='config',
                            help="config file path")
 
-    argparser.parse_args(namespace=options)
+    argparser.parse_args(args=[] if testing else None, namespace=options)
 
     if options.debug:
         logger.setLevel(logging.DEBUG)
@@ -58,7 +61,13 @@ def initialize():
 
     signal.signal(signal.SIGINT, _exit_func)
 
-    load_config(options.config)
+    if testing:
+        conf_path = get_project_path('misc/testing.yaml')
+    else:
+        conf_path = options.config
+
+    load_config(conf_path)
+    init_database()
 
 
 def get_child_logger(suffix):
@@ -82,3 +91,15 @@ def fail_with_error(message):
     logger.critical(message, exc_info=exc_info)
 
     _exit_func()
+
+
+def get_project_path(relative_path):
+    """Returns absolute path constructed from a relative path under
+    the current project.
+
+    @param relative_path: project sub-path
+    """
+
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    project_path = os.path.join(base_path, relative_path)
+    return project_path

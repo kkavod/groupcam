@@ -1,0 +1,18 @@
+# Groupcam testing config
+
+database:
+    name: groupcam_test
+
+http:
+    port_base: 5001
+
+server:
+    source:
+        host: localhost
+        server_password: 
+        channel_path: /
+
+    destination:
+        host: localhost
+        server_password: 
+        channel_path: /
