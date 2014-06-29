@@ -156,8 +156,8 @@ class DestinationClient(BaseClient):
         self._device = camera['device']
 
     def run(self):
-        # TODO: connect on device have been created instead of the timeout
-#          sleep(5.)
+        # TODO: connect on device has been created instead of the timeout
+        # sleep(5.)
         super().run()
 
     def on_complete_join_channel(self):
