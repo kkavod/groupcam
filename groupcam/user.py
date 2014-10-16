@@ -5,13 +5,14 @@ from datetime import datetime
 
 
 class User:
-    def __init__(self, user_id, tt4):
-        self.user_id = user_id
+    def __init__(self, profile, tt4):
+        self.user_id = profile.id
         self.surface = None
         self.img_width = self.img_height = 0
         self.updated = None
         self._tt4 = tt4
         self._data = None
+        self._init_label(profile)
 
     def update(self, frames_count=1):
         video_format = self._tt4.get_user_video_format(self.user_id)
@@ -39,3 +40,11 @@ class User:
 
         self.surface = cairo.ImageSurface.create_for_data(
             self._data, cairo.FORMAT_ARGB32, self.img_width, self.img_height)
+
+    def _init_label(self, profile):
+        nickname = str(profile.nickname, 'utf8')
+        label_match = re.match(r'.*{(.*)}.*', nickname)
+        if label_match is None:
+            self.label = None
+        else:
+            self.label = label_match.groups(0)

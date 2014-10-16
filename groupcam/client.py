@@ -110,11 +110,12 @@ class SourceClient(BaseClient):
 
     def on_command_user_logged_in(self, message):
         user_id = message.first_param
-        user = User(user_id, self._tt4)
+        profile = self._tt4.get_user(user_id)
+        user = User(profile, self._tt4)
         self._users[user_id] = user
 
         subscription = self._subscription
-        cameras = self._get_user_cameras(user_id)
+        cameras = self._get_user_cameras(profile)
         if cameras:
             [camera.add_user(user) for camera in cameras]
             subscription &= not consts.SUBSCRIBE_VIDEO
@@ -135,11 +136,10 @@ class SourceClient(BaseClient):
         # user.hide()
         pass
 
-    def _get_user_cameras(self, user_id):
-        if user_id == self._user_id:
+    def _get_user_cameras(self, profile):
+        if profile.id == self._user_id:
             cameras = []
         else:
-            profile = self._tt4.get_user(user_id)
             nickname = str(profile.nickname, 'utf8')
             cameras = [
                 camera for camera in self._cameras.values()

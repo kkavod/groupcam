@@ -149,15 +149,17 @@ class Camera:
         self._context.paint()
         self._context.restore()
 
-        if options.debug:
-            self._draw_user_labels(left, top, str(user.user_id))
+        self._draw_user_label(user, left, top, width, height)
 
-    def _draw_user_labels(self, left, top, label):
-        font_size = self.height * 0.05
-        self._context.set_font_size(font_size)
-        self._context.move_to(left, top + font_size)
-        self._context.set_source_rgb(0.4, 1., 0.4)
-        self._context.show_text(label)
+    def _draw_user_label(self, user, left, top, width, height):
+        label_rect = (width / 3., 0, width * 2 / 3., height * 0.15)
+        label_left, label_top, label_width, label_height = label_rect
+
+        self._context.set_source_rgb(0, 0, 1.)
+        self._context.rectangle(label_left, 0, label_width, label_height)
+        self._context.fill()
+
+        self._fit_text_to_rect(user.label.upper(), label_rect)
 
     def _user_is_alive(self, user):
         if user.updated is None:
